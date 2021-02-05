@@ -52,6 +52,7 @@ static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 
 static void GPIO_Init(void);
+static void TIM_Init(void);
 static void DMA_Init(void);
 static void ADC_Init(void);
 
@@ -97,9 +98,9 @@ int main(void)
 	
 	/* USER CODE BEGIN 2 */
 	GPIO_Init();
+	TIM_Init();
 	DMA_Init();
 	ADC_Init();
-	
 	
   /* USER CODE END 2 */
 
@@ -114,11 +115,11 @@ int main(void)
 		for(i=0;i<64;i++)
 		{
 			sum_15bit += ADC1ConvertedVault[i];
-		}
+		}  
 		
 		OverSampling_15bit = sum_15bit >> 6;
 		sum_15bit = 0;
-		
+				
     /* USER CODE END WHILE */
 		
     /* USER CODE BEGIN 3 */
@@ -190,7 +191,6 @@ static void DMA_Init(void)
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
 	DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;		//设置外设地址
 	DMA1_Channel1->CMAR = (uint32_t)&ADC1ConvertedVault;		//设置内存地址
-
 	DMA1_Channel1->CNDTR = 64;						//每周期传输数据量
 	DMA1_Channel1->CCR &= 0<<4;						//设置传输方向
 	DMA1_Channel1->CCR |= 1<<5;						//开启循环模式
@@ -217,6 +217,15 @@ static void ADC_Init(void)
 	ADC1->CR |= 1<<0;						//ADC1 转换使能
 	ADC1->CFGR |= 1<<0;					//DMA 信号功能使能
 	ADC1->CR |= 1<<2;						//规则通道转换使能
+}
+
+static void TIM_Init(void)
+{
+	RCC->APB1ENR |= 1<<0;				//TIM2 时钟使能
+	TIM2->ARR = 720;						//720 重装载值
+	TIM2->PSC = 0;							//不分频
+	TIM2->DIER = 1<<0;					//TIM2 中断使能
+	TIM2->CR1 |= 1<<0;					//TIM2 使能	
 }
 
 /* USER CODE END 4 */

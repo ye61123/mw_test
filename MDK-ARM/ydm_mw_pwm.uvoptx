@@ -163,7 +163,7 @@
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>temp,0x0A</ItemText>
+          <ItemText>OverSampling_15bit,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
