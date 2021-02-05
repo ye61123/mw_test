@@ -181,8 +181,8 @@ static void ADC_Init(void)
 	
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC1&2 时钟设置为 HCLK/4 
 	
-//	ADC1->CFGR |= 1<<0;					//DMA 信号功能使能
-//	ADC1->CFGR |= 1<<0;					//DMA 循环模式
+	ADC1->CFGR |= 1<<0;					//DMA 信号功能使能
+	ADC1->CFGR |= 1<<0;					//DMA 循环模式
 	ADC1->CFGR |= 1<<13;				//ADC1 连续转换模式
 	ADC1->SMPR1 |= 1<<3;				//ADC1 采样周期200us
 	ADC1->SQR1 &= 0<<0;					//ADC1 总通道数设为1
