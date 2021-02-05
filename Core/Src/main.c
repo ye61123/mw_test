@@ -61,6 +61,7 @@ static void ADC_Init(void);
 /* USER CODE BEGIN 0 */
 
 __IO uint16_t ADC1ConvertedVault[64];	//定义储存数组
+uint32_t	OverSampling_15bit;
 
 /* USER CODE END 0 */
 
@@ -107,6 +108,16 @@ int main(void)
 	
   while (1)
   {
+		uint32_t i = 0;
+		uint32_t sum_15bit = 0;
+		
+		for(i=0;i<64;i++)
+		{
+			sum_15bit += ADC1ConvertedVault[i];
+		}
+		
+		OverSampling_15bit = sum_15bit >> 6;
+		sum_15bit = 0;
 		
     /* USER CODE END WHILE */
 		
