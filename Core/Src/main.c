@@ -51,6 +51,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 
+static void GPIO_Init(void);
 static void DMA_Init(void);
 static void ADC_Init(void);
 
@@ -59,7 +60,7 @@ static void ADC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-__IO uint16_t ADC1ConvertedVault[200];	//定义储存数组
+__IO uint16_t ADC1ConvertedVault[64];	//定义储存数组
 
 /* USER CODE END 0 */
 
@@ -94,7 +95,7 @@ int main(void)
   MX_GPIO_Init();
 	
 	/* USER CODE BEGIN 2 */
-
+	GPIO_Init();
 	DMA_Init();
 	ADC_Init();
 	
@@ -167,35 +168,39 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 
+static void GPIO_Init(void)
+{
+	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
+	GPIOA->MODER |= 3<<4;				//PA2 模拟模式
+}
   
 static void ADC_Init(void)
 {
-	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
+	
 	RCC->AHBENR |= 1<<28; 			//ADC1 时钟使能
 	RCC->AHBRSTR |= 1<<28;			//ADC1 复位
 	RCC->AHBRSTR &= ~(1<<28);		//ADC1 复位结束
 	
-	GPIOA->MODER |= 3<<4;				//PA2 模拟模式
-	
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC1&2 时钟设置为 HCLK/4 
 	
-	ADC1->CFGR |= 1<<0;					//DMA 信号功能使能
 	ADC1->CFGR |= 1<<0;					//DMA 循环模式
 	ADC1->CFGR |= 1<<13;				//ADC1 连续转换模式
 	ADC1->SMPR1 |= 1<<3;				//ADC1 采样周期200us
 	ADC1->SQR1 &= 0<<0;					//ADC1 总通道数设为1
 	ADC1->SQR1 |=	3<<6;					//ADC1 通道3使能
 	ADC1->CR |= 1<<0;						//ADC1 转换使能
+	ADC1->CFGR |= 1<<0;					//DMA 信号功能使能
 	ADC1->CR |= 1<<2;						//规则通道转换使能
 }
 
 static void DMA_Init(void)
 {
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
-	DMA1_Channel1->CPAR = (uint32_t)ADC1->DR;		//设置读取地址(ADC1->DR)
+	DMA1_Channel1->CPAR = (uint32_t)ADC1->DR;		//设置外设地址
 	DMA1_Channel1->CMAR = (uint32_t)&ADC1ConvertedVault;		//设置内存地址
-	DMA1_Channel1->CNDTR |= 1;						//传输数据量
 	DMA1_Channel1->CCR |= 3<<12;					//通道设置为最高优先级
+	DMA1_Channel1->CNDTR = 64;						//传输数据量
+	DMA1_Channel1->CCR |= 1<<8;						//16位数据
 	DMA1_Channel1->CCR |= 1<<5;						//开启循环模式
 	DMA1_Channel1->CCR |= 1<<0;						//DMA1 使能
 }
