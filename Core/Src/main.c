@@ -59,7 +59,7 @@ static void ADC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint32_t *temp;
+__IO uint16_t ADC1ConvertedVault[200];	//定义储存数组
 
 /* USER CODE END 0 */
 
@@ -106,8 +106,6 @@ int main(void)
 	
   while (1)
   {
-		
-		temp = (uint32_t *)0x10002000;
 		
     /* USER CODE END WHILE */
 		
@@ -189,14 +187,13 @@ static void ADC_Init(void)
 	ADC1->SQR1 |=	3<<6;					//ADC1 通道3使能
 	ADC1->CR |= 1<<0;						//ADC1 转换使能
 	ADC1->CR |= 1<<2;						//规则通道转换使能
-	
 }
 
 static void DMA_Init(void)
 {
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
-	DMA1_Channel1->CPAR |= 0x50000040;		//设置读取地址(ADC1->DR)
-	DMA1_Channel1->CMAR |= 0x10002000;		//写入内存地址
+	DMA1_Channel1->CPAR = (uint32_t)ADC1->DR;		//设置读取地址(ADC1->DR)
+	DMA1_Channel1->CMAR = (uint32_t)&ADC1ConvertedVault;		//设置内存地址
 	DMA1_Channel1->CNDTR |= 1;						//传输数据量
 	DMA1_Channel1->CCR |= 3<<12;					//通道设置为最高优先级
 	DMA1_Channel1->CCR |= 1<<5;						//开启循环模式
