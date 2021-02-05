@@ -96,9 +96,8 @@ int main(void)
 	
 	/* USER CODE BEGIN 2 */
 	GPIO_Init();
-	ADC_Init();
-	HAL_Delay(1000);
 	DMA_Init();
+	ADC_Init();
 	
 	
   /* USER CODE END 2 */
@@ -178,13 +177,16 @@ static void GPIO_Init(void)
 static void DMA_Init(void)
 {
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
-	DMA1_Channel1->CPAR = (uint32_t)ADC1->DR;		//设置外设地址
+	DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;		//设置外设地址
 	DMA1_Channel1->CMAR = (uint32_t)&ADC1ConvertedVault;		//设置内存地址
-	DMA1_Channel1->CCR |= 1<<7;						//内存递增模式
-	DMA1_Channel1->CCR |= 3<<12;					//通道设置为最高优先级
-	DMA1_Channel1->CNDTR = 64;						//传输数据量
-	DMA1_Channel1->CCR |= 1<<10;						//16位数据
+
+	DMA1_Channel1->CNDTR = 64;						//每周期传输数据量
+	DMA1_Channel1->CCR &= 0<<4;						//设置传输方向
 	DMA1_Channel1->CCR |= 1<<5;						//开启循环模式
+	DMA1_Channel1->CCR |= 1<<7;						//内存递增模式
+	DMA1_Channel1->CCR |= 1<<8;						//外设数据16位
+	DMA1_Channel1->CCR |= 1<<10;					//DMA存储数据16位
+	DMA1_Channel1->CCR |= 3<<12;					//通道设置为最高优先级
 	DMA1_Channel1->CCR |= 1<<0;						//DMA1 使能
 }
 
@@ -197,7 +199,7 @@ static void ADC_Init(void)
 	
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC1&2 时钟设置为 HCLK/4 
 	
-	ADC1->CFGR |= 1<<0;					//DMA 循环模式
+	ADC1->CFGR |= 1<<1;					//DMA 循环模式
 	ADC1->CFGR |= 1<<13;				//ADC1 连续转换模式
 	ADC1->SQR1 &= 0<<0;					//ADC1 总通道数设为1
 	ADC1->SQR1 |=	3<<6;					//ADC1 通道3使能

@@ -158,7 +158,7 @@
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ADC1ConvertedVault</ItemText>
+          <ItemText>ADC1ConvertedVault,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
