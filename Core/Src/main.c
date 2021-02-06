@@ -55,6 +55,7 @@ static void GPIO_Init(void);
 static void TIM_Init(void);
 static void DMA_Init(void);
 static void ADC_Init(void);
+static void EXTI_Init(void);
 
 /* USER CODE END PFP */
 
@@ -101,6 +102,7 @@ int main(void)
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
+	EXTI_Init();
 	
   /* USER CODE END 2 */
 
@@ -226,6 +228,15 @@ static void TIM_Init(void)
 	TIM2->PSC = 0;							//不分频
 	TIM2->DIER = 1<<0;					//TIM2 中断使能
 	TIM2->CR1 |= 1<<0;					//TIM2 使能	
+}
+
+static void EXTI_Init(void)
+{
+	EXTI->IMR = 0;
+	EXTI->EMR = 0;
+	EXTI->SWIER = 0;
+	
+	
 }
 
 /* USER CODE END 4 */
