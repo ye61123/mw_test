@@ -65,7 +65,6 @@ void TIM2_IRQHandler(void);
 __IO uint16_t ADC1ConvertedVault[64];				//定义储存数组
 uint32_t 	OverSampling_20bit;
 uint32_t	OverSampling_15bit;
-int En_20bit = 0;
 int TimeBase = 0;
 
 /* USER CODE END 0 */
@@ -78,9 +77,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 	int mk_15bit = 0;
-	int	mk_20bit = 0;
 	uint32_t sum_15bit = 0;
-	uint32_t sum_20bit = 0;
   /* USER CODE END 1 */
   
 
@@ -116,26 +113,18 @@ int main(void)
 	
   while (1)
   {
-		if(En_20bit==1)
-			sum_20bit = 0;
+
 		
 		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 		{
 			sum_15bit += ADC1ConvertedVault[mk_15bit];
-			if(En_20bit==1)
-			{
-				for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
-				{
-					sum_20bit += OverSampling_15bit;
-				}
-			}
+		
 		}  
 
 		OverSampling_15bit = sum_15bit >> 6;
-		OverSampling_20bit = sum_20bit >> 16;
+		
 		sum_15bit = 0;
-//		En_20bit = 0;
-				
+		
     /* USER CODE END WHILE */
 		
     /* USER CODE BEGIN 3 */
@@ -246,16 +235,26 @@ static void TIM_Init(void)
 }
 
 void TIM2_IRQHandler(void)
-{							
+{
+	int	mk_20bit;
+	uint32_t sum_20bit = 0;
+	
 	if(TIM2->SR&1)							//判断是否溢出
 	{
 		TimeBase++;
 		if(TimeBase == 5)
 		{
-			En_20bit = 1;
+			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
+			{
+				sum_20bit += OverSampling_15bit;
+			}
+			
+			OverSampling_20bit = sum_20bit >> 10;
+			
 			TimeBase = 0;
 		}
 	}
+	
 	TIM2->SR &= 0<<0;						//清除中断标志
 }
 
