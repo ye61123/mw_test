@@ -62,7 +62,8 @@ void TIM2_IRQHandler(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-__IO uint16_t ADC1ConvertedVault[64];	//定义储存数组
+__IO uint16_t ADC1ConvertedVault[64];				//定义储存数组
+uint32_t 	OverSampling_20bit;
 uint32_t	OverSampling_15bit;
 int En_20bit = 0;
 int TimeBase = 0;
@@ -76,7 +77,10 @@ int TimeBase = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	
+	int mk_15bit = 0;
+	int	mk_20bit = 0;
+	uint32_t sum_15bit = 0;
+	uint32_t sum_20bit = 0;
   /* USER CODE END 1 */
   
 
@@ -112,16 +116,25 @@ int main(void)
 	
   while (1)
   {
-		uint32_t i = 0;
-		uint32_t sum_15bit = 0;
+		if(En_20bit==1)
+			sum_20bit = 0;
 		
-		for(i=0;i<64;i++)
+		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 		{
-			sum_15bit += ADC1ConvertedVault[i];
+			sum_15bit += ADC1ConvertedVault[mk_15bit];
+			if(En_20bit==1)
+			{
+				for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
+				{
+					sum_20bit += OverSampling_15bit;
+				}
+			}
 		}  
-		
+
 		OverSampling_15bit = sum_15bit >> 6;
+		OverSampling_20bit = sum_20bit >> 16;
 		sum_15bit = 0;
+//		En_20bit = 0;
 				
     /* USER CODE END WHILE */
 		
@@ -209,7 +222,7 @@ static void ADC_Init(void)
 	
 	RCC->AHBENR |= 1<<28; 			//ADC1 时钟使能
 	RCC->AHBRSTR |= 1<<28;			//ADC1 复位
-	RCC->AHBRSTR &= 0<<28;		//ADC1 复位结束
+	RCC->AHBRSTR &= 0<<28;			//ADC1 复位结束
 	
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC1&2 时钟设置为 HCLK/4 
 	
@@ -239,7 +252,7 @@ void TIM2_IRQHandler(void)
 		TimeBase++;
 		if(TimeBase == 5)
 		{
-			En_20bit=1;
+			En_20bit = 1;
 			TimeBase = 0;
 		}
 	}
