@@ -55,7 +55,7 @@ static void GPIO_Init(void);
 static void TIM_Init(void);
 static void DMA_Init(void);
 static void ADC_Init(void);
-static void EXTI_Init(void);
+void TIM2_IRQHandler(void);
 
 /* USER CODE END PFP */
 
@@ -64,6 +64,8 @@ static void EXTI_Init(void);
 
 __IO uint16_t ADC1ConvertedVault[64];	//定义储存数组
 uint32_t	OverSampling_15bit;
+int En_20bit = 0;
+int TimeBase = 0;
 
 /* USER CODE END 0 */
 
@@ -102,7 +104,6 @@ int main(void)
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
-	EXTI_Init();
 	
   /* USER CODE END 2 */
 
@@ -208,7 +209,7 @@ static void ADC_Init(void)
 	
 	RCC->AHBENR |= 1<<28; 			//ADC1 时钟使能
 	RCC->AHBRSTR |= 1<<28;			//ADC1 复位
-	RCC->AHBRSTR &= ~(1<<28);		//ADC1 复位结束
+	RCC->AHBRSTR &= 0<<28;		//ADC1 复位结束
 	
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC1&2 时钟设置为 HCLK/4 
 	
@@ -224,19 +225,25 @@ static void ADC_Init(void)
 static void TIM_Init(void)
 {
 	RCC->APB1ENR |= 1<<0;				//TIM2 时钟使能
-	TIM2->ARR = 720;						//720 重装载值
-	TIM2->PSC = 0;							//不分频
-	TIM2->DIER = 1<<0;					//TIM2 中断使能
+	TIM2->ARR = 2000-1;					//重装载值
+	TIM2->PSC = 36000-1;				//预分频系数
+	TIM2->DIER = 1<<0;					//TIM2 允许更新中断使能
 	TIM2->CR1 |= 1<<0;					//TIM2 使能	
+	NVIC_EnableIRQ(TIM2_IRQn);	//TIM2 中断使能
 }
 
-static void EXTI_Init(void)
-{
-	EXTI->IMR = 0;
-	EXTI->EMR = 0;
-	EXTI->SWIER = 0;
-	
-	
+void TIM2_IRQHandler(void)
+{							
+	if(TIM2->SR&1)							//判断是否溢出
+	{
+		TimeBase++;
+		if(TimeBase == 5)
+		{
+			En_20bit=1;
+			TimeBase = 0;
+		}
+	}
+	TIM2->SR &= 0<<0;						//清除中断标志
 }
 
 /* USER CODE END 4 */
