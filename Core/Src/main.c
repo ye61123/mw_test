@@ -80,6 +80,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	int mk_15bit = 0;													//15位过采样值生成计数
 	uint32_t sum_15bit = 0;										//15位过采样值生成求和
+	
   /* USER CODE END 1 */
   
 
@@ -128,17 +129,26 @@ int main(void)
 		
 		if(ADC2->DR>3277)
 		{
-			if(OPAMP2->CSR == 0x1078404D)	//X4模式
-				OPAMP2->CSR = 0x1078004D;		//X2模式
+			
 			if(OPAMP2->CSR == 0x1078004D)	//X2模式
-				OPAMP2->CSR = 0x10780000;		//X1模式g
+			{
+				OPAMP2->CSR = 0x1078006D;		//X1模式
+			}				
+			else
+			{
+				if(OPAMP2->CSR == 0x1078004D)	//X4模式
+				{
+				OPAMP2->CSR = 0x1078004D;		//X2模式
+				}
+			}
+			
 		}
 			
 		if(ADC2->DR<1229)
 		{
-			if(OPAMP2->CSR == 0x10780000)	//X1模式
+			if(OPAMP2->CSR == 0x1078006D)	//X1模式
 			{
-				OPAMP2->CSR |= 1<<0;					//X2模式
+				OPAMP2->CSR = 0x1078004D;					//X2模式
 			}				
 			else
 			{
@@ -298,8 +308,8 @@ static void PGA_Init(void)
 {
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
 	OPAMP2->CSR |= 3<<2;				//PA7 设为OPAMP2非反相输入端
-	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
-	OPAMP2->CSR |= 1<<0;				//OPAMP2  增益X2
+	OPAMP2->CSR |= 3<<5;				//设置为跟随模式
+	OPAMP2->CSR |= 1<<0;				//OPAMP2  使能
 }
 
 static void DAC_Init(void)
