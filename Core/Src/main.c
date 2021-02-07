@@ -188,7 +188,7 @@ static void MX_GPIO_Init(void)
 static void GPIO_Init(void)
 {
 	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
-	GPIOA->MODER |= 3<<14;				//PA2 模拟模式
+	GPIOA->MODER |= 3<<14;				//PA7 模拟模式
 }
 
 static void DMA_Init(void)
@@ -218,7 +218,7 @@ static void ADC_Init(void)
 	ADC2->CFGR |= 1<<1;					//DMA 循环模式
 	ADC2->CFGR |= 1<<13;				//ADC2 连续转换模式
 	ADC2->SQR1 &= 0<<0;					//ADC2 总通道数设为1
-	ADC2->SQR1 |=	3<<8;					//ADC2 通道3使能
+	ADC2->SQR1 |=	4<<6;					//ADC2 通道4使能
 	ADC2->CR |= 1<<0;						//ADC2 转换使能
 	ADC2->CFGR |= 1<<0;					//DMA 信号功能使能
 	ADC2->CR |= 1<<2;						//规则通道转换使能
