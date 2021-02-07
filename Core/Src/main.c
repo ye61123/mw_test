@@ -56,6 +56,7 @@ static void TIM_Init(void);
 static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
+static void DAC_Init(void);
 void TIM2_IRQHandler(void);
 
 /* USER CODE END PFP */
@@ -107,6 +108,7 @@ int main(void)
 	DMA_Init();
 	ADC_Init();
 	PGA_Init();
+	DAC_Init();
 	
   /* USER CODE END 2 */
 
@@ -129,7 +131,8 @@ int main(void)
 		
 		if(ADC2->DR>4000)
 			OPAMP2->CSR &= 0<<0;				//关闭增益
-			
+		
+		DAC1->DHR12R1 = ADC2->DR;
 		
     /* USER CODE END WHILE */
 		
@@ -194,6 +197,7 @@ static void MX_GPIO_Init(void)
 static void GPIO_Init(void)
 {
 	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
+	GPIOA->MODER |= 1<<8;				//PA4 输出模式
 	GPIOA->MODER |= 3<<12;			//PA6	模拟模式
 	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
 }
@@ -273,6 +277,12 @@ static void PGA_Init(void)
 	OPAMP2->CSR &= 0<<14;				//增益设为2
 	//OPAMP2->CSR |= 1<<14;				//增益设为4
 	//OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
+}
+
+static void DAC_Init(void)
+{
+	RCC->APB1ENR |= 1<<29;			//DAC1 时钟使能
+	DAC1->CR |= 1<<0;						//DAC1 通道1使能
 }
 
 /* USER CODE END 4 */
