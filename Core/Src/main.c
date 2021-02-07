@@ -128,17 +128,24 @@ int main(void)
 		
 //		if(ADC2->DR>3277)
 //		{
-//			if(OPAMP2->CSR!=0)
-//			OPAMP2->CSR |= 0<<2;				//增益-1
-//		}
-//			
-//		if(ADC2->DR<1229)
-//		{
-//			if(OPAMP2->CSR!=1)
-//			OPAMP2->CSR |= 0<<1;				//增益+1
+//			if(OPAMP2->CSR == 0x1078404D)	//X4模式
+//				OPAMP2->CSR = 0x1078004D;		//X2模式
+//			if(OPAMP2->CSR == 0x1078004D)	//X2模式
+//				OPAMP2->CSR = 0x10780000;		//X1模式
 //		}
 			
-		DAC1->DHR12R1 = ADC2->DR;
+//		if(ADC2->DR<1229)
+//		{
+//			if(OPAMP2->CSR == 0x10780000)	//X1模式
+//				OPAMP2->CSR = 1<<0;
+//			if(OPAMP2->CSR == 0x1078004D)	//X2模式
+//			{
+//				OPAMP2->CSR = 1<<0;
+//				OPAMP2->CSR = 1<<14;		//X4模式
+//			}
+//		}
+			
+		DAC1->DHR12R1 = 300;
 		
     /* USER CODE END WHILE */
 		
@@ -288,7 +295,7 @@ static void PGA_Init(void)
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
 	OPAMP2->CSR |= 3<<2;				//PA7 设为OPAMP2非反相输入端
 	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
-	OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
+	OPAMP2->CSR = 1<<0;				//OPAMP2  增益X2
 }
 
 static void DAC_Init(void)
