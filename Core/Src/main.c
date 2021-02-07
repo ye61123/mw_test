@@ -190,7 +190,7 @@ static void MX_GPIO_Init(void)
 static void GPIO_Init(void)
 {
 	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
-	GPIOA->MODER |= 3<<14;				//PA7 模拟模式
+	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
 }
 
 static void DMA_Init(void)
@@ -265,7 +265,7 @@ static void PGA_Init(void)
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
 	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
 	OPAMP2->CSR |= 3<<2;				//PA7 设为OPAMP2非反相输入端
-//	OPAMP2->CSR &= 0<<14;				//增益设为2
+	//OPAMP2->CSR &= 0<<14;				//增益设为2
 	OPAMP2->CSR |= 1<<14;				//增益设为4
 	OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
 }
