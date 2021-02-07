@@ -129,10 +129,13 @@ int main(void)
 		
 		sum_15bit = 0;
 		
-		if(ADC2->DR>4000)
-			OPAMP2->CSR &= 0<<0;				//关闭增益
+//		if(ADC2->DR>3277)
+//			OPAMP2->CSR &= 0<<0;				//关闭增益
+//		if(ADC2->DR<1229)
+//			OPAMP2->CSR |= 1<<0;				//开启增益
 		
 		DAC1->DHR12R1 = ADC2->DR;
+		
 		
     /* USER CODE END WHILE */
 		
@@ -200,6 +203,7 @@ static void GPIO_Init(void)
 	GPIOA->MODER |= 1<<8;				//PA4 输出模式
 	GPIOA->MODER |= 3<<12;			//PA6	模拟模式
 	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
+	GPIOA->AFR[0] |= 13<<24;			//PA6 复用使能
 }
 
 static void DMA_Init(void)
@@ -274,9 +278,9 @@ static void PGA_Init(void)
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
 	OPAMP2->CSR |= 3<<2;				//PA7 设为OPAMP2非反相输入端
 	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
-	OPAMP2->CSR &= 0<<14;				//增益设为2
+//	OPAMP2->CSR &= 0<<14;				//增益设为2
 	//OPAMP2->CSR |= 1<<14;				//增益设为4
-	//OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
+	OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
 }
 
 static void DAC_Init(void)
