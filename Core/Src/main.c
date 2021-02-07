@@ -58,6 +58,8 @@ static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
 void TIM2_IRQHandler(void);
+void TIM3_IRQHandler(void);
+
 
 /* USER CODE END PFP */
 
@@ -129,37 +131,35 @@ int main(void)
 		
 		if(ADC2->DR>3277)
 		{
-			
-			if(OPAMP2->CSR == 0x1078004D)	//X2模式
-			{
-				OPAMP2->CSR = 0x1078006D;		//X1模式
-			}				
+			if(OPAMP2->CSR == 0x1078404D)			//X4模式
+				{
+				OPAMP2->CSR = 0x1078004D;				//X2模式
+				}
 			else
 			{
-				if(OPAMP2->CSR == 0x1078004D)	//X4模式
+				if(OPAMP2->CSR == 0x1078004D)		//X2模式
 				{
-				OPAMP2->CSR = 0x1078004D;		//X2模式
+					OPAMP2->CSR = 0x1078006D;			//X1模式
 				}
 			}
-			
 		}
 			
 		if(ADC2->DR<1229)
 		{
-			if(OPAMP2->CSR == 0x1078006D)	//X1模式
+			if(OPAMP2->CSR == 0x1078006D)			//X1模式
 			{
-				OPAMP2->CSR = 0x1078004D;					//X2模式
+				OPAMP2->CSR = 0x1078004D;				//X2模式
 			}				
 			else
 			{
-				if(OPAMP2->CSR == 0x1078004D)	//X2模式
+				if(OPAMP2->CSR == 0x1078004D)		//X2模式
 				{
-					OPAMP2->CSR |= 1<<14;		//X4模式
+					OPAMP2->CSR = 0x1078404D;			//X4模式
 				}
 			}
 		}
 			
-		DAC1->DHR12R1 = 800;
+		DAC1->DHR12R1 = ADC2->DR;
 		
     /* USER CODE END WHILE */
 		
