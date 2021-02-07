@@ -55,6 +55,7 @@ static void GPIO_Init(void);
 static void TIM_Init(void);
 static void DMA_Init(void);
 static void ADC_Init(void);
+static void PGA_Init(void);
 void TIM2_IRQHandler(void);
 
 /* USER CODE END PFP */
@@ -105,6 +106,7 @@ int main(void)
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
+	PGA_Init();
 	
   /* USER CODE END 2 */
 
@@ -258,10 +260,14 @@ void TIM2_IRQHandler(void)
 	TIM2->SR &= 0<<0;						//清除中断标志
 }
 
-static void PGA_Init()
+static void PGA_Init(void)
 {
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
-//	OPAMP->CSR VP_SEL
+	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
+	OPAMP2->CSR |= 3<<2;				//PA7 设为OPAMP2非反相输入端
+//	OPAMP2->CSR &= 0<<14;				//增益设为2
+	OPAMP2->CSR |= 1<<14;				//增益设为4
+	OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
 }
 
 /* USER CODE END 4 */
