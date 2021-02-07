@@ -62,7 +62,7 @@ void TIM2_IRQHandler(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-__IO uint16_t ADC1ConvertedVault[64];				//定义储存数组
+__IO uint16_t ADC2ConvertedVault[64];				//定义储存数组
 uint32_t 	OverSampling_20bit;
 uint32_t	OverSampling_15bit;
 int TimeBase = 0;
@@ -117,7 +117,7 @@ int main(void)
 		
 		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 		{
-			sum_15bit += ADC1ConvertedVault[mk_15bit];
+			sum_15bit += ADC2ConvertedVault[mk_15bit];
 		
 		}  
 
@@ -188,40 +188,40 @@ static void MX_GPIO_Init(void)
 static void GPIO_Init(void)
 {
 	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
-	GPIOA->MODER |= 3<<4;				//PA2 模拟模式
+	GPIOA->MODER |= 3<<14;				//PA2 模拟模式
 }
 
 static void DMA_Init(void)
 {
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
-	DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;		//设置外设地址
-	DMA1_Channel1->CMAR = (uint32_t)&ADC1ConvertedVault;		//设置内存地址
-	DMA1_Channel1->CNDTR = 64;						//每周期传输数据量
-	DMA1_Channel1->CCR &= 0<<4;						//设置传输方向
-	DMA1_Channel1->CCR |= 1<<5;						//开启循环模式
-	DMA1_Channel1->CCR |= 1<<7;						//内存递增模式
-	DMA1_Channel1->CCR |= 1<<8;						//外设数据16位
-	DMA1_Channel1->CCR |= 1<<10;					//DMA存储数据16位
-	DMA1_Channel1->CCR |= 3<<12;					//通道设置为最高优先级
-	DMA1_Channel1->CCR |= 1<<0;						//DMA1 使能
+	DMA1_Channel2->CPAR = (uint32_t)&ADC2->DR;		//设置外设地址
+	DMA1_Channel2->CMAR = (uint32_t)&ADC2ConvertedVault;		//设置内存地址
+	DMA1_Channel2->CNDTR = 64;						//每周期传输数据量
+	DMA1_Channel2->CCR &= 0<<4;						//设置传输方向
+	DMA1_Channel2->CCR |= 1<<5;						//开启循环模式
+	DMA1_Channel2->CCR |= 1<<7;						//内存递增模式
+	DMA1_Channel2->CCR |= 1<<8;						//外设数据16位
+	DMA1_Channel2->CCR |= 1<<10;					//DMA 存储数据16位
+	DMA1_Channel2->CCR |= 3<<12;					//通道设置为最高优先级
+	DMA1_Channel2->CCR |= 1<<0;						//DMA1 通道2使能
 }
 
 static void ADC_Init(void)
 {
 	
-	RCC->AHBENR |= 1<<28; 			//ADC1 时钟使能
-	RCC->AHBRSTR |= 1<<28;			//ADC1 复位
-	RCC->AHBRSTR &= 0<<28;			//ADC1 复位结束
+	RCC->AHBENR |= 1<<28; 			//ADC2 时钟使能
+	RCC->AHBRSTR |= 1<<28;			//ADC2 复位
+	RCC->AHBRSTR &= 0<<28;			//ADC2 复位结束
 	
-	ADC1_2_COMMON->CCR |= 3<<16;//ADC1&2 时钟设置为 HCLK/4 
+	ADC1_2_COMMON->CCR |= 3<<16;//ADC2 时钟设置为 HCLK/4 
 	
-	ADC1->CFGR |= 1<<1;					//DMA 循环模式
-	ADC1->CFGR |= 1<<13;				//ADC1 连续转换模式
-	ADC1->SQR1 &= 0<<0;					//ADC1 总通道数设为1
-	ADC1->SQR1 |=	3<<6;					//ADC1 通道3使能
-	ADC1->CR |= 1<<0;						//ADC1 转换使能
-	ADC1->CFGR |= 1<<0;					//DMA 信号功能使能
-	ADC1->CR |= 1<<2;						//规则通道转换使能
+	ADC2->CFGR |= 1<<1;					//DMA 循环模式
+	ADC2->CFGR |= 1<<13;				//ADC2 连续转换模式
+	ADC2->SQR1 &= 0<<0;					//ADC2 总通道数设为1
+	ADC2->SQR1 |=	3<<8;					//ADC2 通道3使能
+	ADC2->CR |= 1<<0;						//ADC2 转换使能
+	ADC2->CFGR |= 1<<0;					//DMA 信号功能使能
+	ADC2->CR |= 1<<2;						//规则通道转换使能
 }
 
 static void TIM_Init(void)
@@ -256,6 +256,12 @@ void TIM2_IRQHandler(void)
 	}
 	
 	TIM2->SR &= 0<<0;						//清除中断标志
+}
+
+static void PGA_Init()
+{
+	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
+//	OPAMP->CSR VP_SEL
 }
 
 /* USER CODE END 4 */
