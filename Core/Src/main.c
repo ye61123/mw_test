@@ -64,9 +64,9 @@ void TIM2_IRQHandler(void);
 /* USER CODE BEGIN 0 */
 
 __IO uint16_t ADC2ConvertedVault[64];				//定义储存数组
-uint32_t 	OverSampling_20bit;
-uint32_t	OverSampling_15bit;
-int TimeBase = 0;
+uint32_t	OverSampling_15bit;								//15位过采样值
+uint32_t 	OverSampling_20bit;								//20位过采样值
+int TimeBase = 0;														//秒级时基
 
 /* USER CODE END 0 */
 
@@ -77,8 +77,8 @@ int TimeBase = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	int mk_15bit = 0;
-	uint32_t sum_15bit = 0;
+	int mk_15bit = 0;													//15位过采样值生成计数
+	uint32_t sum_15bit = 0;										//15位过采样值生成求和
   /* USER CODE END 1 */
   
 
@@ -126,6 +126,10 @@ int main(void)
 		OverSampling_15bit = sum_15bit >> 6;
 		
 		sum_15bit = 0;
+		
+		if(ADC2->DR>4000)
+			OPAMP2->CSR &= 0<<0;				//关闭增益
+			
 		
     /* USER CODE END WHILE */
 		
@@ -190,13 +194,14 @@ static void MX_GPIO_Init(void)
 static void GPIO_Init(void)
 {
 	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
+	GPIOA->MODER |= 3<<12;			//PA6	模拟模式
 	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
 }
 
 static void DMA_Init(void)
 {
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
-	DMA1_Channel2->CPAR = (uint32_t)&ADC2->DR;		//设置外设地址
+	DMA1_Channel2->CPAR = (uint32_t)&ADC2->DR;							//设置外设地址
 	DMA1_Channel2->CMAR = (uint32_t)&ADC2ConvertedVault;		//设置内存地址
 	DMA1_Channel2->CNDTR = 64;						//每周期传输数据量
 	DMA1_Channel2->CCR &= 0<<4;						//设置传输方向
@@ -220,7 +225,7 @@ static void ADC_Init(void)
 	ADC2->CFGR |= 1<<1;					//DMA 循环模式
 	ADC2->CFGR |= 1<<13;				//ADC2 连续转换模式
 	ADC2->SQR1 &= 0<<0;					//ADC2 总通道数设为1
-	ADC2->SQR1 |=	4<<6;					//ADC2 通道4使能
+	ADC2->SQR1 |=	3<<6;					//ADC2 通道3使能
 	ADC2->CR |= 1<<0;						//ADC2 转换使能
 	ADC2->CFGR |= 1<<0;					//DMA 信号功能使能
 	ADC2->CR |= 1<<2;						//规则通道转换使能
@@ -238,8 +243,8 @@ static void TIM_Init(void)
 
 void TIM2_IRQHandler(void)
 {
-	int	mk_20bit;
-	uint32_t sum_20bit = 0;
+	int	mk_20bit;								//20位过采样值生成计数
+	uint32_t sum_20bit = 0;			//20位过采样值生成求和
 	
 	if(TIM2->SR&1)							//判断是否溢出
 	{
@@ -263,11 +268,11 @@ void TIM2_IRQHandler(void)
 static void PGA_Init(void)
 {
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
-	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
 	OPAMP2->CSR |= 3<<2;				//PA7 设为OPAMP2非反相输入端
-	//OPAMP2->CSR &= 0<<14;				//增益设为2
-	OPAMP2->CSR |= 1<<14;				//增益设为4
-	OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
+	OPAMP2->CSR |= 2<<5;				//设置为PGA模式
+	OPAMP2->CSR &= 0<<14;				//增益设为2
+	//OPAMP2->CSR |= 1<<14;				//增益设为4
+	//OPAMP2->CSR |= 1<<0;				//OPAMP2 使能
 }
 
 /* USER CODE END 4 */
