@@ -117,29 +117,26 @@ int main(void)
 	
   while (1)
   {
-
-		
 		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 		{
 			sum_15bit += ADC2ConvertedVault[mk_15bit];
-		
 		}  
 
 		OverSampling_15bit = sum_15bit >> 6;
 		
 		sum_15bit = 0;
 		
-		if(ADC2->DR>3277)
-		{
-			if(OPAMP2->CSR!=0)
-			OPAMP2->CSR |= 0<<2;				//增益-1
-		}
-			
-		if(ADC2->DR<1229)
-		{
-			if(OPAMP2->CSR!=1)
-			OPAMP2->CSR |= 0<<1;				//增益+1
-		}
+//		if(ADC2->DR>3277)
+//		{
+//			if(OPAMP2->CSR!=0)
+//			OPAMP2->CSR |= 0<<2;				//增益-1
+//		}
+//			
+//		if(ADC2->DR<1229)
+//		{
+//			if(OPAMP2->CSR!=1)
+//			OPAMP2->CSR |= 0<<1;				//增益+1
+//		}
 			
 		DAC1->DHR12R1 = ADC2->DR;
 		
@@ -237,7 +234,7 @@ static void ADC_Init(void)
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC2 时钟设置为 HCLK/4 
 	
 	ADC2->CFGR |= 1<<1;					//DMA 循环模式
-	ADC2->CFGR &= 0<<13;				//ADC2 单次转换模式
+	ADC2->CFGR |= 1<<13;				//ADC2 循环转换模式
 	ADC2->SQR1 &= 0<<0;					//ADC2 总通道数设为1
 	ADC2->SQR1 |=	3<<6;					//ADC2 通道3使能
 	ADC2->CR |= 1<<0;						//ADC2 转换使能
@@ -256,7 +253,7 @@ static void TIM_Init(void)
 	
 	RCC->APB1ENR |= 1<<1;				//TIM3 时钟使能
 	TIM3->ARR = 200-1;					//重装载值
-	TIM3->PSC = 72-1;				//预分频系数
+	TIM3->PSC = 72-1;						//预分频系数
 	TIM3->DIER = 1<<0;					//TIM2 允许更新中断使能
 	TIM3->CR1 |= 1<<0;					//TIM3 使能	
 	NVIC_EnableIRQ(TIM3_IRQn);	//TIM3 中断使能
@@ -278,7 +275,7 @@ void TIM2_IRQHandler(void)
 			}
 			
 			OverSampling_20bit = sum_20bit >> 10;
-			
+			ADC2->CR |= 1<<4;					//ADC2 规则通道停止
 			TimeBase = 0;
 		}
 	}
@@ -304,7 +301,7 @@ void TIM3_IRQHandler(void)
 {
 	if(TIM3->SR&1)							//判断是否溢出
 	{
-		ADC2->CR |= 1<<2;						//规则通道转换使能
+		ADC2->CR |= 1<<2;					//规则通道转换使能
 	}
 	
 	TIM3->SR &= 0<<0;						//清除中断标志
