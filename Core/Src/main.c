@@ -256,7 +256,7 @@ void TIM2_IRQHandler(void)
 			}
 			
 			OverSampling_20bit = sum_20bit >> 10;
-			ADC2->CR |= 1<<4;				//ADC2 规则通道停止
+			
 			TimeBase = 0;
 		}
 	}
@@ -280,13 +280,17 @@ static void DAC_Init(void)
 
 void TIM3_IRQHandler(void)
 {
-	int mk_15bit = 0;													//15位过采样值生成计数
-	uint32_t sum_15bit = 0;										//15位过采样值生成求和
+	int mk_15bit = 0;						//15位过采样值生成计数
+	uint32_t sum_15bit = 0;			//15位过采样值生成求和
+	uint32_t	DMA1_ISR_Value = 0;//DMA1->ISR 寄存器状态	
 	
 	if(TIM3->SR&1)							//判断是否溢出
 	{
-		ADC2->CR |= 1<<2;					//规则通道转换使能
+		ADC2->CR |= 1<<2;					//ADC2 规则通道转换使能
 		
+		DMA1_ISR_Value = DMA1->ISR;//复制 DMA1->ISR 寄存器值
+		if((DMA1_ISR_Value&1<<5) == 1)		//判断DMA是否传输完成
+			ADC2->CR |= 1<<4;				//ADC2 规则通道转化停止
 		
 		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 		{
