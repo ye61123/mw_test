@@ -80,8 +80,7 @@ int TimeBase = 0;														//秒级时基
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	int mk_15bit = 0;													//15位过采样值生成计数
-	uint32_t sum_15bit = 0;										//15位过采样值生成求和
+	
 	
   /* USER CODE END 1 */
   
@@ -120,46 +119,7 @@ int main(void)
 	
   while (1)
   {
-		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
-		{
-			sum_15bit += ADC2ConvertedVault[mk_15bit];
-		}  
-
-		OverSampling_15bit = sum_15bit >> 6;
 		
-		sum_15bit = 0;
-		
-		if(ADC2->DR>3277)
-		{
-			if(OPAMP2->CSR == 0x1078404D)			//X4模式
-				{
-				OPAMP2->CSR = 0x1078004D;				//X2模式
-				}
-			else
-			{
-				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-				{
-					OPAMP2->CSR = 0x1078006D;			//X1模式
-				}
-			}
-		}
-			
-		if(ADC2->DR<1229)
-		{
-			if(OPAMP2->CSR == 0x1078006D)			//X1模式
-			{
-				OPAMP2->CSR = 0x1078004D;				//X2模式
-			}				
-			else
-			{
-				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-				{
-					OPAMP2->CSR = 0x1078404D;			//X4模式
-				}
-			}
-		}
-			
-		DAC1->DHR12R1 = ADC2->DR;
 		
     /* USER CODE END WHILE */
 		
@@ -296,7 +256,7 @@ void TIM2_IRQHandler(void)
 			}
 			
 			OverSampling_20bit = sum_20bit >> 10;
-			ADC2->CR |= 1<<4;					//ADC2 规则通道停止
+			ADC2->CR |= 1<<4;				//ADC2 规则通道停止
 			TimeBase = 0;
 		}
 	}
@@ -320,9 +280,56 @@ static void DAC_Init(void)
 
 void TIM3_IRQHandler(void)
 {
+	int mk_15bit = 0;													//15位过采样值生成计数
+	uint32_t sum_15bit = 0;										//15位过采样值生成求和
+	
 	if(TIM3->SR&1)							//判断是否溢出
 	{
 		ADC2->CR |= 1<<2;					//规则通道转换使能
+		
+		
+		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
+		{
+			sum_15bit += ADC2ConvertedVault[mk_15bit];
+		}  
+
+		OverSampling_15bit = sum_15bit >> 6;
+		
+		sum_15bit = 0;
+		
+		if(ADC2->DR>3277)
+		{
+			if(OPAMP2->CSR == 0x1078404D)			//X4模式
+				{
+				OPAMP2->CSR = 0x1078004D;				//X2模式
+				}
+			else
+			{
+				if(OPAMP2->CSR == 0x1078004D)		//X2模式
+				{
+					OPAMP2->CSR = 0x1078006D;			//X1模式
+				}
+			}
+		}
+			
+		if(ADC2->DR<1229)
+		{
+			if(OPAMP2->CSR == 0x1078006D)			//X1模式
+			{
+				OPAMP2->CSR = 0x1078004D;				//X2模式
+			}				
+			else
+			{
+				if(OPAMP2->CSR == 0x1078004D)		//X2模式
+				{
+					OPAMP2->CSR = 0x1078404D;			//X4模式
+				}
+			}
+		}
+			
+		DAC1->DHR12R1 = ADC2->DR;
+		
+		
 	}
 	
 	TIM3->SR &= 0<<0;						//清除中断标志
