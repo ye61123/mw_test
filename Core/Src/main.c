@@ -235,7 +235,7 @@ static void TIM_Init(void)
 	RCC->APB1ENR |= 1<<1;				//TIM3 时钟使能
 	TIM3->ARR = 200-1;					//重装载值
 	TIM3->PSC = 72-1;						//预分频系数
-	TIM3->DIER = 1<<0;					//TIM2 允许更新中断使能
+	TIM3->DIER = 1<<0;					//TIM3 允许更新中断使能
 	TIM3->CR1 |= 1<<0;					//TIM3 使能	
 	NVIC_EnableIRQ(TIM3_IRQn);	//TIM3 中断使能
 }
