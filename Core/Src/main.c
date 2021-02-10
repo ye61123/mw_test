@@ -254,13 +254,10 @@ void TIM2_IRQHandler(void)
 			{
 				sum_20bit += OverSampling_15bit;
 			}
-			
 			OverSampling_20bit = sum_20bit >> 10;
-			
 			TimeBase = 0;
 		}
 	}
-	
 	TIM2->SR &= 0<<0;						//清除中断标志
 }
 
@@ -298,7 +295,6 @@ void TIM3_IRQHandler(void)
 		}  
 
 		OverSampling_15bit = sum_15bit >> 6;
-		
 		sum_15bit = 0;
 		
 		if(ADC2->DR>3277)
@@ -332,8 +328,6 @@ void TIM3_IRQHandler(void)
 		}
 			
 		DAC1->DHR12R1 = ADC2->DR;
-		
-		
 	}
 	
 	TIM3->SR &= 0<<0;						//清除中断标志
