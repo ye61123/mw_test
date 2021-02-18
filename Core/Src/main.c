@@ -57,6 +57,7 @@ static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
+static void I2C_Init(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
 
@@ -273,6 +274,11 @@ static void DAC_Init(void)
 {
 	RCC->APB1ENR |= 1<<29;			//DAC1 时钟使能
 	DAC1->CR |= 1<<0;						//DAC1 通道1使能
+}
+
+static void I2C_Init(void)
+{
+	I2C1->
 }
 
 void TIM3_IRQHandler(void)
