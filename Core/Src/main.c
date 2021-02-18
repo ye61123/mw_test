@@ -20,6 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -57,10 +58,8 @@ static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
-static void I2C_Init(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
-
 
 /* USER CODE END PFP */
 
@@ -112,6 +111,7 @@ int main(void)
 	ADC_Init();
 	PGA_Init();
 	DAC_Init();
+	I2C_Init();
 	
   /* USER CODE END 2 */
 
@@ -120,8 +120,6 @@ int main(void)
 	
   while (1)
   {
-		
-		
     /* USER CODE END WHILE */
 		
     /* USER CODE BEGIN 3 */
@@ -276,10 +274,6 @@ static void DAC_Init(void)
 	DAC1->CR |= 1<<0;						//DAC1 通道1使能
 }
 
-static void I2C_Init(void)
-{
-	I2C1->
-}
 
 void TIM3_IRQHandler(void)
 {
