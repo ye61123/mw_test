@@ -354,9 +354,9 @@ static void Calibrate(void)
 	
 	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
 	DAC1->DHR12R1 = 0;
-	HAL_Delay(1000);
+	HAL_Delay(10000);
 	DAC1->DHR12R1 = 3686;
-	HAL_Delay(1000);
+	HAL_Delay(10000);
 	GPIOB->BRR  |= 1<<7;						//校准指示灯除能
 	
 	static	uint16_t sample_cal;	//采样计数
