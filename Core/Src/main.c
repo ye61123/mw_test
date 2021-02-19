@@ -76,6 +76,7 @@ uint16_t	Actual_Offset;										//实际截止值
 uint16_t	H_Vault[20];											//90%样本存放数组
 uint16_t	L_Vault[20];											//0%样本存放数组
 int TimeBase = 0;														//秒级时基
+int Calibrate_Status = 0;
 /* USER CODE END 0 */
 
 /**
@@ -112,12 +113,12 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 	GPIO_Init();
 	DAC_Init();
-	Calibrate();
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
 	PGA_Init();
-	I2C_Init();	
+	I2C_Init();
+	Calibrate();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -311,7 +312,7 @@ void TIM3_IRQHandler(void)
 					OPAMP2->CSR = 0x1078404D;			//X4模式
 			}
 		}
-		if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_8)==0)
+		if(Calibrate_Status == 1)
 			DAC1->DHR12R1 = ADC2->DR;
 	}
 	TIM3->SR &= 0<<0;						//清除中断标志
@@ -358,6 +359,7 @@ static void Calibrate(void)
 	DAC1->DHR12R1 = 3686;
 	HAL_Delay(10000);
 	GPIOB->BRR  |= 1<<7;						//校准指示灯除能
+	Calibrate_Status = 1;
 	
 	static	uint16_t sample_cal;	//采样计数
 //	ADC2ConvertedVault
