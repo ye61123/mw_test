@@ -57,7 +57,6 @@ static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
-static void Calibrate_Init(void);
 static void Calibrate(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
@@ -112,13 +111,13 @@ int main(void)
 	
 	/* USER CODE BEGIN 2 */
 	GPIO_Init();
+	DAC_Init();
+	Calibrate();
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
 	PGA_Init();
-	DAC_Init();
-	I2C_Init();
-	Calibrate_Init();	
+	I2C_Init();	
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -127,26 +126,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
-		HAL_Delay(200);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET);
-		HAL_Delay(200);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
-    HAL_Delay(200);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_SET);
-		HAL_Delay(200);
+
 		/* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -309,6 +289,8 @@ void TIM3_IRQHandler(void)
 		
 		if(ADC2->DR>3277)
 		{
+			GPIOB->BRR |= 1<<8;
+			GPIOB->BSRR |= 1<<9;							//高电平指示灯使能
 			if(OPAMP2->CSR == 0x1078404D)			//X4模式
 				OPAMP2->CSR = 0x1078004D;				//X2模式
 			else
@@ -319,6 +301,8 @@ void TIM3_IRQHandler(void)
 		}	
 		if(ADC2->DR<1229)
 		{
+			GPIOB->BRR |= 1<<9;
+			GPIOB->BSRR |= 1<<8;							//低电平指示灯使能
 			if(OPAMP2->CSR == 0x1078006D)			//X1模式
 				OPAMP2->CSR = 0x1078004D;				//X2模式			
 			else
@@ -327,7 +311,8 @@ void TIM3_IRQHandler(void)
 					OPAMP2->CSR = 0x1078404D;			//X4模式
 			}
 		}
-		DAC1->DHR12R1 = ADC2->DR;
+		if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_8)==0)
+			DAC1->DHR12R1 = ADC2->DR;
 	}
 	TIM3->SR &= 0<<0;						//清除中断标志
 } 
@@ -352,8 +337,7 @@ void TIM2_IRQHandler(void)
 	}
 	TIM2->SR &= 0<<0;						//清除中断标志
 }
-
-static void Calibrate_Init(void)
+static void Calibrate(void)
 {
 	Avg_H_Vault = 0;											
 	Avg_L_Vault = 0;											
@@ -367,10 +351,14 @@ static void Calibrate_Init(void)
 		H_Vault[temp] = 0;											
 		L_Vault[temp] = 0;
 	}
-}
-
-static void Calibrate(void)
-{
+	
+	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
+	DAC1->DHR12R1 = 0;
+	HAL_Delay(1000);
+	DAC1->DHR12R1 = 3686;
+	HAL_Delay(1000);
+	GPIOB->BRR  |= 1<<7;						//校准指示灯除能
+	
 	static	uint16_t sample_cal;	//采样计数
 //	ADC2ConvertedVault
 	
