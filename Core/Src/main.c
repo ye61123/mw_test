@@ -59,6 +59,7 @@ static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
 static void Calibrate_Init(void);
+static void Calibrate(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
 
@@ -78,7 +79,6 @@ uint16_t	Actual_Gain;											//实际增益值
 uint16_t	Actual_Offset;										//实际截止值
 uint16_t	H_Vault[20];											//90%样本存放数组
 uint16_t	L_Vault[20];											//0%样本存放数组
-
 int TimeBase = 0;														//秒级时基
 
 /* USER CODE END 0 */
@@ -122,8 +122,7 @@ int main(void)
 	PGA_Init();
 	DAC_Init();
 	I2C_Init();
-	Calibrate_Init();
-	
+	Calibrate_Init();	
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -189,15 +188,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-
 static void GPIO_Init(void)
 {
 	RCC->AHBENR |= 1<<17;				//GPIOA 时钟使能
+	RCC->AHBENR |= 1<<18;				//GPIOB 时钟使能	
 	GPIOA->MODER |= 1<<8;				//PA4 输出模式
 	GPIOA->MODER |= 3<<12;			//PA6	模拟模式
 	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
-	GPIOA->AFR[0] |= 13<<24;			//PA6 复用使能
+	GPIOA->AFR[0] |= 13<<24;		//PA6 复用使能
+	GPIOB->MODER |= 1<<16;			//PB8	输出模式
+	GPIOB->MODER |= 1<<18;			//PB9	输出模式
+	GPIOB->PUPDR |= 1<<16;			//PB8	上拉模式
+	GPIOB->PUPDR |= 1<<18;			//PB9	上拉模式
+	GPIOB->OSPEEDR |= 3<<16;		//PB8	高速模式
+	GPIOB->OSPEEDR |= 3<<16;		//PB9	高速模式
+	
+	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
 }
 
 static void DMA_Init(void)
@@ -249,28 +256,6 @@ static void TIM_Init(void)
 	TIM3->CR1 |= 1<<0;					//TIM3 使能	
 	NVIC_EnableIRQ(TIM3_IRQn);	//TIM3 中断使能
 }
-
-void TIM2_IRQHandler(void)
-{
-	int	mk_20bit;								//20位过采样值生成计数
-	uint32_t sum_20bit = 0;			//20位过采样值生成求和
-	
-	if(TIM2->SR&1)							//判断是否溢出
-	{
-		TimeBase++;
-		if(TimeBase == 5)
-		{
-			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
-			{
-				sum_20bit += OverSampling_15bit;
-			}
-			OverSampling_20bit = sum_20bit >> 10;
-			TimeBase = 0;
-		}
-	}
-	TIM2->SR &= 0<<0;						//清除中断标志
-}
-
 static void PGA_Init(void)
 {
 	RCC->APB2ENR |= 1<<0;				//SYSCFG 时钟使能
@@ -284,8 +269,6 @@ static void DAC_Init(void)
 	RCC->APB1ENR |= 1<<29;			//DAC1 时钟使能
 	DAC1->CR |= 1<<0;						//DAC1 通道1使能
 }
-
-
 void TIM3_IRQHandler(void)
 {
 	int mk_15bit = 0;						//15位过采样值生成计数
@@ -297,7 +280,7 @@ void TIM3_IRQHandler(void)
 		ADC2->CR |= 1<<2;					//ADC2 规则通道转换使能
 		
 		DMA1_ISR_Value = DMA1->ISR;//复制 DMA1->ISR 寄存器值
-		if((DMA1_ISR_Value&1<<5) == 1)		//判断DMA是否传输完成
+		if((DMA1_ISR_Value&1<<5) == 1)//判断DMA是否传输完成
 			ADC2->CR |= 1<<4;				//ADC2 规则通道转化停止
 		
 		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
@@ -344,6 +327,49 @@ void TIM3_IRQHandler(void)
 	TIM3->SR &= 0<<0;						//清除中断标志
 } 
 
+void TIM2_IRQHandler(void)
+{
+	int	mk_20bit;								//20位过采样值生成计数
+	uint32_t sum_20bit = 0;			//20位过采样值生成求和
+	
+	if(TIM2->SR&1)							//判断是否溢出
+	{
+		TimeBase++;
+		if(TimeBase == 5)
+		{
+			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
+			{
+				sum_20bit += OverSampling_15bit;
+			}
+			OverSampling_20bit = sum_20bit >> 10;
+			TimeBase = 0;
+		}
+	}
+	TIM2->SR &= 0<<0;						//清除中断标志
+}
+
+static void Calibrate_Init(void)
+{
+	Avg_H_Vault = 0;											
+	Avg_L_Vault = 0;											
+	Sum_H_Vault = 0;											
+	Sum_L_Vault = 0;											
+	Actual_Gain = 0;											
+	Actual_Offset = 0;	
+	uint16_t	temp;
+	for(temp=0;temp<20;temp++)
+	{
+		H_Vault[temp] = 0;											
+		L_Vault[temp] = 0;
+	}
+}
+
+static void Calibrate(void)
+{
+	static	uint16_t sample_cal;	//采样计数
+//	ADC2ConvertedVault
+	
+}
 /* USER CODE END 4 */
 
 /**

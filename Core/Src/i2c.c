@@ -2,8 +2,6 @@
 
 void I2C_Init()
 {
-	RCC->AHBENR |= 1<<18;				//GPIOB 时钟使能	
-	
 //	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
 //	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 //	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
