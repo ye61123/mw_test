@@ -124,32 +124,54 @@ unsigned char I2C_Read_Byte(void)
 }
 
 
-void Delay_us(uint32_t udelay)
+//void Delay_us(uint32_t udelay)
+//{
+//  uint32_t startval,tickn,delays,wait;
+// 
+//  startval = SysTick->VAL;
+//  tickn = HAL_GetTick();
+//  //sysc = 72000;  //SystemCoreClock / (1000U / uwTickFreq);
+//  delays =udelay * 72; //sysc / 1000 * udelay;
+//  if(delays > startval)
+//    {
+//      while(HAL_GetTick() == tickn)
+//        {
+// 
+//        }
+//      wait = 72000 + startval - delays;
+//      while(wait < SysTick->VAL)
+//        {
+// 
+//        }
+//    }
+//  else
+//    {
+//      wait = startval - delays;
+//      while(wait < SysTick->VAL && HAL_GetTick() == tickn)
+//        {
+// 
+//        }
+//    }
+//}
+
+
+void Delay_us(uint32_t nus)
 {
-  uint32_t startval,tickn,delays,wait;
- 
-  startval = SysTick->VAL;
-  tickn = HAL_GetTick();
-  //sysc = 72000;  //SystemCoreClock / (1000U / uwTickFreq);
-  delays =udelay * 72; //sysc / 1000 * udelay;
-  if(delays > startval)
+		unsigned char  fac_us;
+    uint32_t ticks;
+    uint32_t told,tnow,tcnt=0;
+    uint32_t reload=SysTick->LOAD;                   //LOAD
+    ticks=nus*fac_us;
+    told=SysTick->VAL;
+    while(1)
     {
-      while(HAL_GetTick() == tickn)
+        tnow=SysTick->VAL;
+        if(tnow!=told)
         {
- 
-        }
-      wait = 72000 + startval - delays;
-      while(wait < SysTick->VAL)
-        {
- 
-        }
-    }
-  else
-    {
-      wait = startval - delays;
-      while(wait < SysTick->VAL && HAL_GetTick() == tickn)
-        {
- 
+            if(tnow<told)tcnt+=told-tnow;       // SYSTICK.
+            else tcnt+=reload-tnow+told;
+            told=tnow;
+            if(tcnt>=ticks)break;
         }
     }
 }

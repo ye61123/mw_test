@@ -51,7 +51,6 @@
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
-
 static void GPIO_Init(void);
 static void TIM_Init(void);
 static void DMA_Init(void);
@@ -62,12 +61,10 @@ static void Calibrate_Init(void);
 static void Calibrate(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 __IO uint16_t ADC2ConvertedVault[64];				//定义储存数组
 uint32_t	OverSampling_15bit;								//15位过采样值
 uint32_t 	OverSampling_20bit;								//20位过采样值
@@ -80,7 +77,6 @@ uint16_t	Actual_Offset;										//实际截止值
 uint16_t	H_Vault[20];											//90%样本存放数组
 uint16_t	L_Vault[20];											//0%样本存放数组
 int TimeBase = 0;														//秒级时基
-
 /* USER CODE END 0 */
 
 /**
@@ -131,8 +127,27 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-		
-    /* USER CODE BEGIN 3 */
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
+		HAL_Delay(200);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET);
+		HAL_Delay(200);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+    HAL_Delay(200);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_SET);
+		HAL_Delay(200);
+		/* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -196,15 +211,18 @@ static void GPIO_Init(void)
 	GPIOA->MODER |= 3<<12;			//PA6	模拟模式
 	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
 	GPIOA->AFR[0] |= 13<<24;		//PA6 复用使能
+	GPIOB->MODER |= 1<<12;			//PB6	输出模式
+	GPIOB->MODER |= 1<<14;			//PB7	输出模式
 	GPIOB->MODER |= 1<<16;			//PB8	输出模式
 	GPIOB->MODER |= 1<<18;			//PB9	输出模式
+	GPIOB->PUPDR |= 1<<12;			//PB6	上拉模式
+	GPIOB->PUPDR |= 1<<14;			//PB7	上拉模式
 	GPIOB->PUPDR |= 1<<16;			//PB8	上拉模式
 	GPIOB->PUPDR |= 1<<18;			//PB9	上拉模式
+	GPIOB->OSPEEDR |= 3<<12;		//PB6	高速模式
+	GPIOB->OSPEEDR |= 3<<14;		//PB7	高速模式
 	GPIOB->OSPEEDR |= 3<<16;		//PB8	高速模式
-	GPIOB->OSPEEDR |= 3<<16;		//PB9	高速模式
-	
-	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
-	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_9,GPIO_PIN_SET);
+	GPIOB->OSPEEDR |= 3<<18;		//PB9	高速模式
 }
 
 static void DMA_Init(void)
@@ -228,9 +246,7 @@ static void ADC_Init(void)
 	RCC->AHBENR |= 1<<28; 			//ADC2 时钟使能
 	RCC->AHBRSTR |= 1<<28;			//ADC2 复位
 	RCC->AHBRSTR &= 0<<28;			//ADC2 复位结束
-	
 	ADC1_2_COMMON->CCR |= 3<<16;//ADC2 时钟设置为 HCLK/4 
-	
 	ADC2->CFGR |= 1<<1;					//DMA 循环模式
 	ADC2->CFGR |= 1<<13;				//ADC2 循环转换模式
 	ADC2->SQR1 &= 0<<0;					//ADC2 总通道数设为1
@@ -241,7 +257,7 @@ static void ADC_Init(void)
 }
 
 static void TIM_Init(void)
-{
+ {
 	RCC->APB1ENR |= 1<<0;				//TIM2 时钟使能
 	TIM2->ARR = 2000-1;					//重装载值
 	TIM2->PSC = 36000-1;				//预分频系数
@@ -294,36 +310,25 @@ void TIM3_IRQHandler(void)
 		if(ADC2->DR>3277)
 		{
 			if(OPAMP2->CSR == 0x1078404D)			//X4模式
-				{
 				OPAMP2->CSR = 0x1078004D;				//X2模式
-				}
 			else
 			{
 				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-				{
 					OPAMP2->CSR = 0x1078006D;			//X1模式
-				}
 			}
-		}
-			
+		}	
 		if(ADC2->DR<1229)
 		{
 			if(OPAMP2->CSR == 0x1078006D)			//X1模式
-			{
-				OPAMP2->CSR = 0x1078004D;				//X2模式
-			}				
+				OPAMP2->CSR = 0x1078004D;				//X2模式			
 			else
 			{
 				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-				{
 					OPAMP2->CSR = 0x1078404D;			//X4模式
-				}
 			}
 		}
-			
 		DAC1->DHR12R1 = ADC2->DR;
 	}
-	
 	TIM3->SR &= 0<<0;						//清除中断标志
 } 
 
