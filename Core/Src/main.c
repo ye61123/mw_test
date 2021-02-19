@@ -58,6 +58,7 @@ static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
+static void Calibrate_Init(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
 
@@ -69,6 +70,15 @@ void TIM3_IRQHandler(void);
 __IO uint16_t ADC2ConvertedVault[64];				//定义储存数组
 uint32_t	OverSampling_15bit;								//15位过采样值
 uint32_t 	OverSampling_20bit;								//20位过采样值
+uint16_t	Avg_H_Vault;											//90%样本平均值
+uint16_t	Avg_L_Vault;											//0%样本平均值
+uint16_t	Sum_H_Vault;											//90%样本和值
+uint16_t	Sum_L_Vault;											//0%样本和值
+uint16_t	Actual_Gain;											//实际增益值
+uint16_t	Actual_Offset;										//实际截止值
+uint16_t	H_Vault[20];											//90%样本存放数组
+uint16_t	L_Vault[20];											//0%样本存放数组
+
 int TimeBase = 0;														//秒级时基
 
 /* USER CODE END 0 */
@@ -112,6 +122,7 @@ int main(void)
 	PGA_Init();
 	DAC_Init();
 	I2C_Init();
+	Calibrate_Init();
 	
   /* USER CODE END 2 */
 
