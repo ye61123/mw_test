@@ -36,7 +36,6 @@
 /* USER CODE BEGIN PD */
 #define HIGH_IDEAL_COUNT 3686
 #define LOW_IDEAL_COUNT 0
-#define SAMPLES 64
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -113,7 +112,7 @@ int main(void)
 	
 	/* USER CODE BEGIN 2 */
 	GPIO_Init();
-	DAC_Init();
+//	DAC_Init();
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
@@ -291,10 +290,10 @@ void TIM2_IRQHandler(void)
 		TimeBase++;
 		
 		if(TimeBase == 1 && Calibrate_Status != 1)
-			DAC1->DHR12R1 = 0;			//开机1S后 DAC输出0%参考电压
+			DAC1->DHR12R1 = LOW_IDEAL_COUNT;			//开机1S后 DAC输出0%参考电压
 		
 		if(TimeBase == 3 && Calibrate_Status != 1)
-			DAC1->DHR12R1 = 3686;		//开机3S后 DAC输出90%参考电压
+			DAC1->DHR12R1 = HIGH_IDEAL_COUNT;		//开机3S后 DAC输出90%参考电压
 		
 		if(TimeBase == 5)
 		{
@@ -306,6 +305,8 @@ void TIM2_IRQHandler(void)
 			if(Calibrate_Status != 1)
 			{
 				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
+				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);	//计算实际增益系数
+				Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
 				Calibrate_Status = 1;	//开机5s后 置位校准标志
 			}
 			TimeBase = 0;						//时基清零
@@ -350,7 +351,7 @@ void TIM3_IRQHandler(void)
 		if(Calibrate_Status == 1)	//校准完成后计算15bit数据
 		{
 			for(mk_15bit=0;mk_15bit<64;mk_15bit++)
-				sum_15bit += ADC2ConvertedVault[mk_15bit];
+				sum_15bit += ADC2ConvertedVault[mk_15bit]*Actual_Gain+Actual_Offset;
 			OverSampling_15bit = sum_15bit >> 6;
 			sum_15bit = 0;
 		}
@@ -380,7 +381,8 @@ void TIM3_IRQHandler(void)
 //			}
 		}
 		if(Calibrate_Status == 1)
-			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
+//			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
+			DAC1->DHR12R1 = 0;					//校准完成后跟随ADC2
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
 }
