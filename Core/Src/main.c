@@ -119,7 +119,7 @@ int main(void)
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
-//	PGA_Init();
+	PGA_Init();
 	I2C_Init();
 	Calibrate();
   /* USER CODE END 2 */
@@ -287,20 +287,25 @@ void TIM3_IRQHandler(void)
 		{
 			if(ADC2->DR<1229)				//判断是否为低电平
 			{
+				for(mk_cali=0;mk_cali<64;mk_cali++)
+					Sum_L_Count += ADC2ConvertedVault[mk_cali];
+				Avg_L_Count = Sum_L_Count >> 6;
+				Sum_L_Count = 0;
 			}				
 			
 			if(ADC2->DR>3277)				//判断是否为高电平
 			{
-				for(mk_cali=0;mk_cali<SAMPLES;mk_cali++)
-					Sum_H_Count+=ADC2ConvertedVault[mk_cali];
-				Avg_H_Count=Sum_H_Count/SAMPLES;
+				for(mk_cali=0;mk_cali<64;mk_cali++)
+					Sum_H_Count += ADC2ConvertedVault[mk_cali];
+				Avg_H_Count = Sum_H_Count >> 6;
+				Sum_H_Count = 0;
 			}
 		}
 		
 		if(Calibrate_Status == 1)	//校准完成后计算15bit数据
 		{
 			for(mk_15bit=0;mk_15bit<64;mk_15bit++)
-			sum_15bit += ADC2ConvertedVault[mk_15bit];
+				sum_15bit += ADC2ConvertedVault[mk_15bit];
 			OverSampling_15bit = sum_15bit >> 6;
 			sum_15bit = 0;
 		}
@@ -343,6 +348,13 @@ void TIM2_IRQHandler(void)
 	if(TIM2->SR&1)							//判断是否溢出
 	{
 		TimeBase++;
+		
+		if(TimeBase == 1 && Calibrate_Status != 1)
+			DAC1->DHR12R1 = 0;		//开机1S后 DAC输出0%参考电压
+		
+		if(TimeBase == 3 && Calibrate_Status != 1)
+			DAC1->DHR12R1 = 3686;		//开机3S后 DAC输出90%参考电压
+		
 		if(TimeBase == 5)
 		{
 			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
@@ -350,6 +362,11 @@ void TIM2_IRQHandler(void)
 				sum_20bit += OverSampling_15bit;
 			}
 			OverSampling_20bit = sum_20bit >> 10;
+			if(Calibrate_Status != 1)
+			{
+				GPIOB->BRR  |= 1<<7;						//校准指示灯除能
+				Calibrate_Status = 1;						//开机5s校准完成
+			}
 			TimeBase = 0;
 		}
 	}
@@ -371,13 +388,6 @@ static void Calibrate(void)
 	}
 	
 	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
-	DAC1->DHR12R1 = 0;
-	HAL_Delay(10000);
-	DAC1->DHR12R1 = 3686;
-	HAL_Delay(10000);
-	GPIOB->BRR  |= 1<<7;						//校准指示灯除能
-	Calibrate_Status = 1;
-	
 	static	uint16_t sample_cal;	//采样计数
 //	ADC2ConvertedVault
 	

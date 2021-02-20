@@ -178,7 +178,7 @@
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>OPAMP2-&gt;CSR,0x10</ItemText>
+          <ItemText>Avg_L_Count,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
