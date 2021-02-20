@@ -60,7 +60,7 @@ static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
-static void Calibrate(void);
+static void Calibrate_Init(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
 /* USER CODE END PFP */
@@ -72,8 +72,6 @@ uint32_t	OverSampling_15bit;								//15位过采样值
 uint32_t 	OverSampling_20bit;								//20位过采样值
 uint16_t	Avg_H_Count;											//90%样本平均值
 uint16_t	Avg_L_Count;											//0%样本平均值
-uint16_t	Sum_H_Count;											//90%样本和值
-uint16_t	Sum_L_Count;											//0%样本和值
 uint16_t	Actual_Gain;											//实际增益值
 uint16_t	Actual_Offset;										//实际截止值
 uint16_t	H_Count[20];											//90%样本存放数组
@@ -120,8 +118,8 @@ int main(void)
 	DMA_Init();
 	ADC_Init();
 	PGA_Init();
-	I2C_Init();
-	Calibrate();
+//	I2C_Init();
+	Calibrate_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -269,11 +267,59 @@ static void DAC_Init(void)
 	RCC->APB1ENR |= 1<<29;			//DAC1 时钟使能
 	DAC1->CR |= 1<<0;						//DAC1 通道1使能
 }
+static void Calibrate_Init(void)
+{
+	Avg_H_Count = 0;											
+	Avg_L_Count = 0;																					
+	Actual_Gain = 0;											
+	Actual_Offset = 0;	
+	uint16_t	temp;
+	for(temp=0;temp<20;temp++)
+	{
+		H_Count[temp] = 0;											
+		L_Count[temp] = 0;
+	}
+	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
+}
+void TIM2_IRQHandler(void)
+{
+	int	mk_20bit;								//20位过采样值生成计数
+	uint32_t sum_20bit = 0;			//20位过采样值生成求和
+	
+	if(TIM2->SR&1)							//判断是否溢出
+	{
+		TimeBase++;
+		
+		if(TimeBase == 1 && Calibrate_Status != 1)
+			DAC1->DHR12R1 = 0;			//开机1S后 DAC输出0%参考电压
+		
+		if(TimeBase == 3 && Calibrate_Status != 1)
+			DAC1->DHR12R1 = 3686;		//开机3S后 DAC输出90%参考电压
+		
+		if(TimeBase == 5)
+		{
+			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
+			{
+				sum_20bit += OverSampling_15bit;
+			}
+			OverSampling_20bit = sum_20bit >> 10;
+			if(Calibrate_Status != 1)
+			{
+				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
+				Calibrate_Status = 1;	//开机5s后 置位校准标志
+			}
+			TimeBase = 0;						//时基清零
+		}
+	}
+	TIM2->SR &= 0<<0;						//清除中断标志
+}
 void TIM3_IRQHandler(void)
 {
 	int mk_cali = 0;						//辅助校准值生成计数
 	int mk_15bit = 0;						//15位过采样值生成计数
 	uint32_t sum_15bit = 0;			//15位过采样值生成求和
+	uint32_t	Sum_H_Count = 0;	//90%样本和值
+	uint32_t	Sum_L_Count = 0;	//0%样本和值
 	uint32_t	DMA1_ISR_Value = 0;//DMA1->ISR 寄存器状态	
 	
 	if(TIM3->SR&1)							//判断是否溢出
@@ -283,7 +329,7 @@ void TIM3_IRQHandler(void)
 		if((DMA1_ISR_Value&1<<5) == 1)//判断DMA是否传输完成
 			ADC2->CR |= 1<<4;				//ADC2 规则通道转化停止
 		
-		if(Calibrate_Status == 0)	//若未校准则开始校准
+		if(Calibrate_Status != 1)	//若未校准则开始校准
 		{
 			if(ADC2->DR<1229)				//判断是否为低电平
 			{
@@ -291,8 +337,7 @@ void TIM3_IRQHandler(void)
 					Sum_L_Count += ADC2ConvertedVault[mk_cali];
 				Avg_L_Count = Sum_L_Count >> 6;
 				Sum_L_Count = 0;
-			}				
-			
+			}						
 			if(ADC2->DR>3277)				//判断是否为高电平
 			{
 				for(mk_cali=0;mk_cali<64;mk_cali++)
@@ -338,59 +383,6 @@ void TIM3_IRQHandler(void)
 			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
-} 
-
-void TIM2_IRQHandler(void)
-{
-	int	mk_20bit;								//20位过采样值生成计数
-	uint32_t sum_20bit = 0;			//20位过采样值生成求和
-	
-	if(TIM2->SR&1)							//判断是否溢出
-	{
-		TimeBase++;
-		
-		if(TimeBase == 1 && Calibrate_Status != 1)
-			DAC1->DHR12R1 = 0;		//开机1S后 DAC输出0%参考电压
-		
-		if(TimeBase == 3 && Calibrate_Status != 1)
-			DAC1->DHR12R1 = 3686;		//开机3S后 DAC输出90%参考电压
-		
-		if(TimeBase == 5)
-		{
-			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
-			{
-				sum_20bit += OverSampling_15bit;
-			}
-			OverSampling_20bit = sum_20bit >> 10;
-			if(Calibrate_Status != 1)
-			{
-				GPIOB->BRR  |= 1<<7;						//校准指示灯除能
-				Calibrate_Status = 1;						//开机5s校准完成
-			}
-			TimeBase = 0;
-		}
-	}
-	TIM2->SR &= 0<<0;						//清除中断标志
-}
-static void Calibrate(void)
-{
-	Avg_H_Count = 0;											
-	Avg_L_Count = 0;											
-	Sum_H_Count = 0;											
-	Sum_L_Count = 0;											
-	Actual_Gain = 0;											
-	Actual_Offset = 0;	
-	uint16_t	temp;
-	for(temp=0;temp<20;temp++)
-	{
-		H_Count[temp] = 0;											
-		L_Count[temp] = 0;
-	}
-	
-	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
-	static	uint16_t sample_cal;	//采样计数
-//	ADC2ConvertedVault
-	
 }
 /* USER CODE END 4 */
 
