@@ -73,8 +73,6 @@ uint16_t	Avg_H_Count;											//90%样本平均值
 uint16_t	Avg_L_Count;											//0%样本平均值
 uint16_t	Actual_Gain;											//实际增益值
 uint16_t	Actual_Offset;										//实际截止值
-uint16_t	H_Count[20];											//90%样本存放数组
-uint16_t	L_Count[20];											//0%样本存放数组
 int TimeBase = 0;														//秒级时基
 int Calibrate_Status = 0;
 /* USER CODE END 0 */
@@ -84,7 +82,7 @@ int Calibrate_Status = 0;
   * @retval int
   */
 int main(void)
-  {
+{
   /* USER CODE BEGIN 1 */
 	
 	
@@ -117,7 +115,7 @@ int main(void)
 	DMA_Init();
 	ADC_Init();
 	PGA_Init();
-//	I2C_Init();
+	I2C_Init();
 	Calibrate_Init();
   /* USER CODE END 2 */
 
@@ -271,13 +269,7 @@ static void Calibrate_Init(void)
 	Avg_H_Count = 0;											
 	Avg_L_Count = 0;																					
 	Actual_Gain = 0;											
-	Actual_Offset = 0;	
-	uint16_t	temp;
-	for(temp=0;temp<20;temp++)
-	{
-		H_Count[temp] = 0;											
-		L_Count[temp] = 0;
-	}
+	Actual_Offset = 0;
 	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
 }
 void TIM2_IRQHandler(void)
@@ -331,6 +323,7 @@ void TIM3_IRQHandler(void)
 	{
 		ADC2->CR |= 1<<2;					//ADC2 规则通道转换使能
 		DMA1_ISR_Value = DMA1->ISR;//复制 DMA1->ISR 寄存器值
+		
 		if((DMA1_ISR_Value&1<<5) == 1)//判断DMA是否传输完成
 			ADC2->CR |= 1<<4;				//ADC2 规则通道转化停止
 		
@@ -362,8 +355,9 @@ void TIM3_IRQHandler(void)
 		
 		if(ADC2->DR>3277)
 		{
-			GPIOB->BRR |= 1<<8;
 			GPIOB->BSRR |= 1<<9;							//高电平指示灯使能
+			GPIOB->BRR |= 1<<6;
+			GPIOB->BRR |= 1<<8;
 //			if(OPAMP2->CSR == 0x1078404D)			//X4模式
 //				OPAMP2->CSR = 0x1078004D;				//X2模式
 //			else
@@ -371,11 +365,20 @@ void TIM3_IRQHandler(void)
 //				if(OPAMP2->CSR == 0x1078004D)		//X2模式
 //					OPAMP2->CSR = 0x1078006D;			//X1模式
 //			}
-		}	
+		}
+		
+		if(ADC2->DR>=1229 && ADC2->DR<=3277)
+		{
+			GPIOB->BSRR |= 1<<6;
+			GPIOB->BRR |= 1<<8;
+			GPIOB->BRR |= 1<<9;
+		}
+
 		if(ADC2->DR<1229)
 		{
-			GPIOB->BRR |= 1<<9;
 			GPIOB->BSRR |= 1<<8;							//低电平指示灯使能
+			GPIOB->BRR |= 1<<6;
+			GPIOB->BRR |= 1<<9;
 //			if(OPAMP2->CSR == 0x1078006D)			//X1模式
 //				OPAMP2->CSR = 0x1078004D;				//X2模式			
 //			else
@@ -384,9 +387,10 @@ void TIM3_IRQHandler(void)
 //					OPAMP2->CSR = 0x1078404D;			//X4模式
 //			}
 		}
+		
 		if(Calibrate_Status == 1)
 //			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
-			DAC1->DHR12R1 = 2048;					//校准完成后跟随ADC2
+			DAC1->DHR12R1 = 2048;							//校准完成后跟随ADC2
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
 }
