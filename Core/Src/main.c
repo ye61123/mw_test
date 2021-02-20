@@ -34,6 +34,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define HIGH_IDEAL_COUNT 3686
+#define LOW_IDEAL_COUNT 0
+#define SAMPLES 64
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -67,14 +70,14 @@ void TIM3_IRQHandler(void);
 __IO uint16_t ADC2ConvertedVault[64];				//定义储存数组
 uint32_t	OverSampling_15bit;								//15位过采样值
 uint32_t 	OverSampling_20bit;								//20位过采样值
-uint16_t	Avg_H_Vault;											//90%样本平均值
-uint16_t	Avg_L_Vault;											//0%样本平均值
-uint16_t	Sum_H_Vault;											//90%样本和值
-uint16_t	Sum_L_Vault;											//0%样本和值
+uint16_t	Avg_H_Count;											//90%样本平均值
+uint16_t	Avg_L_Count;											//0%样本平均值
+uint16_t	Sum_H_Count;											//90%样本和值
+uint16_t	Sum_L_Count;											//0%样本和值
 uint16_t	Actual_Gain;											//实际增益值
 uint16_t	Actual_Offset;										//实际截止值
-uint16_t	H_Vault[20];											//90%样本存放数组
-uint16_t	L_Vault[20];											//0%样本存放数组
+uint16_t	H_Count[20];											//90%样本存放数组
+uint16_t	L_Count[20];											//0%样本存放数组
 int TimeBase = 0;														//秒级时基
 int Calibrate_Status = 0;
 /* USER CODE END 0 */
@@ -116,7 +119,7 @@ int main(void)
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
-	PGA_Init();
+//	PGA_Init();
 	I2C_Init();
 	Calibrate();
   /* USER CODE END 2 */
@@ -268,6 +271,7 @@ static void DAC_Init(void)
 }
 void TIM3_IRQHandler(void)
 {
+	int mk_cali = 0;						//辅助校准值生成计数
 	int mk_15bit = 0;						//15位过采样值生成计数
 	uint32_t sum_15bit = 0;			//15位过采样值生成求和
 	uint32_t	DMA1_ISR_Value = 0;//DMA1->ISR 寄存器状态	
@@ -275,47 +279,60 @@ void TIM3_IRQHandler(void)
 	if(TIM3->SR&1)							//判断是否溢出
 	{
 		ADC2->CR |= 1<<2;					//ADC2 规则通道转换使能
-		
 		DMA1_ISR_Value = DMA1->ISR;//复制 DMA1->ISR 寄存器值
 		if((DMA1_ISR_Value&1<<5) == 1)//判断DMA是否传输完成
 			ADC2->CR |= 1<<4;				//ADC2 规则通道转化停止
 		
-		for(mk_15bit=0;mk_15bit<64;mk_15bit++)
+		if(Calibrate_Status == 0)	//若未校准则开始校准
 		{
+			if(ADC2->DR<1229)				//判断是否为低电平
+			{
+			}				
+			
+			if(ADC2->DR>3277)				//判断是否为高电平
+			{
+				for(mk_cali=0;mk_cali<SAMPLES;mk_cali++)
+					Sum_H_Count+=ADC2ConvertedVault[mk_cali];
+				Avg_H_Count=Sum_H_Count/SAMPLES;
+			}
+		}
+		
+		if(Calibrate_Status == 1)	//校准完成后计算15bit数据
+		{
+			for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 			sum_15bit += ADC2ConvertedVault[mk_15bit];
-		}  
-
-		OverSampling_15bit = sum_15bit >> 6;
-		sum_15bit = 0;
+			OverSampling_15bit = sum_15bit >> 6;
+			sum_15bit = 0;
+		}
 		
 		if(ADC2->DR>3277)
 		{
 			GPIOB->BRR |= 1<<8;
 			GPIOB->BSRR |= 1<<9;							//高电平指示灯使能
-			if(OPAMP2->CSR == 0x1078404D)			//X4模式
-				OPAMP2->CSR = 0x1078004D;				//X2模式
-			else
-			{
-				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-					OPAMP2->CSR = 0x1078006D;			//X1模式
-			}
+//			if(OPAMP2->CSR == 0x1078404D)			//X4模式
+//				OPAMP2->CSR = 0x1078004D;				//X2模式
+//			else
+//			{
+//				if(OPAMP2->CSR == 0x1078004D)		//X2模式
+//					OPAMP2->CSR = 0x1078006D;			//X1模式
+//			}
 		}	
 		if(ADC2->DR<1229)
 		{
 			GPIOB->BRR |= 1<<9;
 			GPIOB->BSRR |= 1<<8;							//低电平指示灯使能
-			if(OPAMP2->CSR == 0x1078006D)			//X1模式
-				OPAMP2->CSR = 0x1078004D;				//X2模式			
-			else
-			{
-				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-					OPAMP2->CSR = 0x1078404D;			//X4模式
-			}
+//			if(OPAMP2->CSR == 0x1078006D)			//X1模式
+//				OPAMP2->CSR = 0x1078004D;				//X2模式			
+//			else
+//			{
+//				if(OPAMP2->CSR == 0x1078004D)		//X2模式
+//					OPAMP2->CSR = 0x1078404D;			//X4模式
+//			}
 		}
 		if(Calibrate_Status == 1)
-			DAC1->DHR12R1 = ADC2->DR;
+			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
 	}
-	TIM3->SR &= 0<<0;						//清除中断标志
+	TIM3->SR &= 0<<0;											//清除中断标志
 } 
 
 void TIM2_IRQHandler(void)
@@ -340,17 +357,17 @@ void TIM2_IRQHandler(void)
 }
 static void Calibrate(void)
 {
-	Avg_H_Vault = 0;											
-	Avg_L_Vault = 0;											
-	Sum_H_Vault = 0;											
-	Sum_L_Vault = 0;											
+	Avg_H_Count = 0;											
+	Avg_L_Count = 0;											
+	Sum_H_Count = 0;											
+	Sum_L_Count = 0;											
 	Actual_Gain = 0;											
 	Actual_Offset = 0;	
 	uint16_t	temp;
 	for(temp=0;temp<20;temp++)
 	{
-		H_Vault[temp] = 0;											
-		L_Vault[temp] = 0;
+		H_Count[temp] = 0;											
+		L_Count[temp] = 0;
 	}
 	
 	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
