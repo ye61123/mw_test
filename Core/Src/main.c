@@ -84,7 +84,7 @@ int Calibrate_Status = 0;
   * @retval int
   */
 int main(void)
-{
+  {
   /* USER CODE BEGIN 1 */
 	
 	
@@ -112,7 +112,7 @@ int main(void)
 	
 	/* USER CODE BEGIN 2 */
 	GPIO_Init();
-//	DAC_Init();
+	DAC_Init();
 	TIM_Init();
 	DMA_Init();
 	ADC_Init();
@@ -222,8 +222,7 @@ static void DMA_Init(void)
 }
 
 static void ADC_Init(void)
-{
-	
+{	
 	RCC->AHBENR |= 1<<28; 			//ADC2 时钟使能
 	RCC->AHBRSTR |= 1<<28;			//ADC2 复位
 	RCC->AHBRSTR &= 0<<28;			//ADC2 复位结束
@@ -264,6 +263,7 @@ static void PGA_Init(void)
 static void DAC_Init(void)
 {
 	RCC->APB1ENR |= 1<<29;			//DAC1 时钟使能
+	DAC1->CR |= 1<<1;						//DAC1 缓存区使能
 	DAC1->CR |= 1<<0;						//DAC1 通道1使能
 }
 static void Calibrate_Init(void)
@@ -307,10 +307,14 @@ void TIM2_IRQHandler(void)
 				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
 				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);	//计算实际增益系数
 				Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
-				Calibrate_Status = 1;	//开机5s后 置位校准标志
+//				ADC2->CR |= 1<<4;								//ADC2 除能
+//				ADC2->OFR1 |= Actual_Offset<<0;	//写入偏置值
+//				ADC2->OFR1 |= 3<<26;						//选择通道3
+//				ADC2->OFR1 |= (uint32_t)1<<31;		//ADC2 偏置校正使能
+				Calibrate_Status |= 1;	//开机5s后 置位校准标志
 			}
 			TimeBase = 0;						//时基清零
-		}
+	 	}
 	}
 	TIM2->SR &= 0<<0;						//清除中断标志
 }
@@ -382,7 +386,7 @@ void TIM3_IRQHandler(void)
 		}
 		if(Calibrate_Status == 1)
 //			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
-			DAC1->DHR12R1 = 0;					//校准完成后跟随ADC2
+			DAC1->DHR12R1 = 2048;					//校准完成后跟随ADC2
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
 }
