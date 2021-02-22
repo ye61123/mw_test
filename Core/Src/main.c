@@ -287,10 +287,13 @@ void TIM2_IRQHandler(void)
 			OverSampling_20bit = sum_20bit >> 10;
 			if(Calibrate_Status != 1)
 			{
-				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
 				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);	//计算实际增益系数
-				Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
-				Calibrate_Status |= 1;	//开机5s后 置位校准标志
+				if(LOW_IDEAL_COUNT<Avg_L_Count)
+					Actual_Offset = Avg_L_Count*Actual_Gain - LOW_IDEAL_COUNT;
+				if(HIGH_IDEAL_COUNT>Avg_H_Count)
+					Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
+				Calibrate_Status = 1;//开机5s后 置位校准标志
+				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
 			}
 			TimeBase = 0;						//时基清零
 	 	}
@@ -376,8 +379,7 @@ void TIM3_IRQHandler(void)
 		}
 		
 		if(Calibrate_Status == 1)
-//			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
-			DAC1->DHR12R1 = 2048;							
+			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
 }
