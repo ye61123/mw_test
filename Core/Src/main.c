@@ -84,9 +84,8 @@ int Calibrate_Status = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	
-	
-  /* USER CODE END 1 */
+  
+	/* USER CODE END 1 */
   
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -95,14 +94,14 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-	
-  /* USER CODE END Init */
+  
+	/* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+	
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -189,7 +188,6 @@ static void GPIO_Init(void)
 	GPIOA->MODER |= 1<<8;				//PA4 输出模式
 	GPIOA->MODER |= 3<<12;			//PA6	模拟模式
 	GPIOA->MODER |= 3<<14;			//PA7 模拟模式
-	GPIOA->AFR[0] |= 13<<24;		//PA6 复用使能
 	GPIOB->MODER |= 1<<12;			//PB6	输出模式
 	GPIOB->MODER |= 1<<14;			//PB7	输出模式
 	GPIOB->MODER |= 1<<16;			//PB8	输出模式
@@ -198,12 +196,8 @@ static void GPIO_Init(void)
 	GPIOB->PUPDR |= 1<<14;			//PB7	上拉模式
 	GPIOB->PUPDR |= 1<<16;			//PB8	上拉模式
 	GPIOB->PUPDR |= 1<<18;			//PB9	上拉模式
-	GPIOB->OSPEEDR |= 3<<12;		//PB6	高速模式
-	GPIOB->OSPEEDR |= 3<<14;		//PB7	高速模式
-	GPIOB->OSPEEDR |= 3<<16;		//PB8	高速模式
-	GPIOB->OSPEEDR |= 3<<18;		//PB9	高速模式
+	GPIOA->AFR[0] |= 13<<24;		//PA6 复用使能
 }
-
 static void DMA_Init(void)
 {
 	RCC->AHBENR |= 1<<0; 									//DMA1 时钟使能
@@ -218,7 +212,6 @@ static void DMA_Init(void)
 	DMA1_Channel2->CCR |= 3<<12;					//通道设置为最高优先级
 	DMA1_Channel2->CCR |= 1<<0;						//DMA1 通道2使能
 }
-
 static void ADC_Init(void)
 {	
 	RCC->AHBENR |= 1<<28; 			//ADC2 时钟使能
@@ -233,7 +226,6 @@ static void ADC_Init(void)
 	ADC2->CFGR |= 1<<0;					//DMA 信号功能使能
 	ADC2->CR |= 1<<2;						//规则通道转换使能
 }
-
 static void TIM_Init(void)
  {
 	RCC->APB1ENR |= 1<<0;				//TIM2 时钟使能
@@ -257,7 +249,6 @@ static void PGA_Init(void)
 	OPAMP2->CSR |= 3<<5;				//设置为跟随模式
 	OPAMP2->CSR |= 1<<0;				//OPAMP2  使能
 }
-
 static void DAC_Init(void)
 {
 	RCC->APB1ENR |= 1<<29;			//DAC1 时钟使能
@@ -299,10 +290,6 @@ void TIM2_IRQHandler(void)
 				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
 				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);	//计算实际增益系数
 				Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
-//				ADC2->CR |= 1<<4;								//ADC2 除能
-//				ADC2->OFR1 |= Actual_Offset<<0;	//写入偏置值
-//				ADC2->OFR1 |= 3<<26;						//选择通道3
-//				ADC2->OFR1 |= (uint32_t)1<<31;		//ADC2 偏置校正使能
 				Calibrate_Status |= 1;	//开机5s后 置位校准标志
 			}
 			TimeBase = 0;						//时基清零
@@ -390,7 +377,7 @@ void TIM3_IRQHandler(void)
 		
 		if(Calibrate_Status == 1)
 //			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
-			DAC1->DHR12R1 = 2048;							//校准完成后跟随ADC2
+			DAC1->DHR12R1 = 2048;							
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
 }
