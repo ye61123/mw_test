@@ -288,7 +288,9 @@ void Calibrate(void)
 			}
 		}
 		
-		if(TimeBase >= 5 && Calibrate_Status != 1 && Avg_H_Count>Avg_L_Count)
+		if(TimeBase == 5)
+		{
+			if(Calibrate_Status != 1 && (Avg_H_Count-Avg_L_Count)>2000)												//消除干扰信号
 			{
 				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);		//计算实际增益系数
 				if(LOW_IDEAL_COUNT<Avg_L_Count)
@@ -297,12 +299,14 @@ void Calibrate(void)
 					Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
 				Calibrate_Status = 1;																														//开机5s后 置位校准标志
 				DAC1->DHR12R1 = OverSampling_15bit;																							//校准完成后跟随ADC2
-				TimeBase = 0;
 			}
+			TimeBase = 0;
+			GPIOB->BSRR |= 1<<7;								//校准指示灯使能
+		}
 }
 void LED(void)
 {
-		if(Calibrate_Status == 1)
+		if(Calibrate_Status == 1 || TimeBase == 4)
 			GPIOB->BRR |= 1<<7;								//校准指示灯除能
 		
 		if(ADC2->DR>3277)
@@ -385,7 +389,7 @@ void TIM2_IRQHandler(void)
 	{
 		DAC1_Channel1();
 		TimeBase++;
-	}		
+	}
 	TIM2->SR &= 0<<0;						//清除中断标志
 }
 void TIM3_IRQHandler(void)
@@ -393,8 +397,8 @@ void TIM3_IRQHandler(void)
 	if(TIM3->SR&1)							//判断是否溢出
 	{
 		ADC2_Channel3();
-		Calibrate();
 		LED();
+		Calibrate();
 //		PGA();
 	}
 	TIM3->SR &= 0<<0;						//清除中断标志
