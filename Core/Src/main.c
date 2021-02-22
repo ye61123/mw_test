@@ -60,6 +60,7 @@ static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
 static void Calibrate_Init(void);
+void Calibrate(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);
 /* USER CODE END PFP */
@@ -227,7 +228,7 @@ static void ADC_Init(void)
 	ADC2->CR |= 1<<2;						//规则通道转换使能
 }
 static void TIM_Init(void)
- {
+{
 	RCC->APB1ENR |= 1<<0;				//TIM2 时钟使能
 	TIM2->ARR = 2000-1;					//重装载值
 	TIM2->PSC = 36000-1;				//预分频系数
@@ -261,63 +262,15 @@ static void Calibrate_Init(void)
 	Avg_L_Count = 0;																					
 	Actual_Gain = 0;											
 	Actual_Offset = 0;
-	GPIOB->BSRR |= 1<<7;						//校准指示灯使能
+	GPIOB->BSRR |= 1<<7;				//校准指示灯使能
 }
-void TIM2_IRQHandler(void)
-{
-	int	mk_20bit;								//20位过采样值生成计数
-	uint32_t sum_20bit = 0;			//20位过采样值生成求和
-	
-	if(TIM2->SR&1)							//判断是否溢出
-	{
-		TimeBase++;
-		
-		if(TimeBase == 1 && Calibrate_Status != 1)
-			DAC1->DHR12R1 = LOW_IDEAL_COUNT;			//开机1S后 DAC输出0%参考电压
-		
-		if(TimeBase == 3 && Calibrate_Status != 1)
-			DAC1->DHR12R1 = HIGH_IDEAL_COUNT;		//开机3S后 DAC输出90%参考电压
-		
-		if(TimeBase == 5)
-		{
-			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
-			{
-				sum_20bit += OverSampling_15bit;
-			}
-			OverSampling_20bit = sum_20bit >> 10;
-			if(Calibrate_Status != 1)
-			{
-				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);	//计算实际增益系数
-				if(LOW_IDEAL_COUNT<Avg_L_Count)
-					Actual_Offset = Avg_L_Count*Actual_Gain - LOW_IDEAL_COUNT;
-				if(HIGH_IDEAL_COUNT>Avg_H_Count)
-					Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
-				Calibrate_Status = 1;//开机5s后 置位校准标志
-				GPIOB->BRR  |= 1<<7;	//校准指示灯除能
-			}
-			TimeBase = 0;						//时基清零
-	 	}
-	}
-	TIM2->SR &= 0<<0;						//清除中断标志
-}
-void TIM3_IRQHandler(void)
+void Calibrate(void)
 {
 	int mk_cali = 0;						//辅助校准值生成计数
-	int mk_15bit = 0;						//15位过采样值生成计数
-	uint32_t sum_15bit = 0;			//15位过采样值生成求和
 	uint32_t	Sum_H_Count = 0;	//90%样本和值
 	uint32_t	Sum_L_Count = 0;	//0%样本和值
-	uint32_t	DMA1_ISR_Value = 0;//DMA1->ISR 寄存器状态	
 	
-	if(TIM3->SR&1)							//判断是否溢出
-	{
-		ADC2->CR |= 1<<2;					//ADC2 规则通道转换使能
-		DMA1_ISR_Value = DMA1->ISR;//复制 DMA1->ISR 寄存器值
-		
-		if((DMA1_ISR_Value&1<<5) == 1)//判断DMA是否传输完成
-			ADC2->CR |= 1<<4;				//ADC2 规则通道转化停止
-		
-		if(Calibrate_Status != 1)	//若未校准则开始校准
+	if(Calibrate_Status != 1)		//若未校准则开始校准
 		{
 			if(ADC2->DR<1229)				//判断是否为低电平
 			{
@@ -335,53 +288,116 @@ void TIM3_IRQHandler(void)
 			}
 		}
 		
-		if(Calibrate_Status == 1)	//校准完成后计算15bit数据
+		if(TimeBase >= 5 && Calibrate_Status != 1 && Avg_H_Count>Avg_L_Count)
+			{
+				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);		//计算实际增益系数
+				if(LOW_IDEAL_COUNT<Avg_L_Count)
+					Actual_Offset = Avg_L_Count*Actual_Gain - LOW_IDEAL_COUNT;
+				if(HIGH_IDEAL_COUNT>Avg_H_Count)
+					Actual_Offset = HIGH_IDEAL_COUNT - Avg_H_Count*Actual_Gain;										//计算偏置
+				Calibrate_Status = 1;																														//开机5s后 置位校准标志
+				DAC1->DHR12R1 = OverSampling_15bit;																							//校准完成后跟随ADC2
+				TimeBase = 0;
+			}
+}
+void LED(void)
+{
+		if(Calibrate_Status == 1)
+			GPIOB->BRR |= 1<<7;								//校准指示灯除能
+		
+		if(ADC2->DR>3277)
+		{
+			GPIOB->BSRR |= 1<<9;							//高电平指示灯使能
+			GPIOB->BRR |= 1<<8;
+		}
+
+		if(ADC2->DR<1229)
+		{
+			GPIOB->BSRR |= 1<<8;							//低电平指示灯使能
+			GPIOB->BRR |= 1<<9;
+		}
+}
+void PGA(void)
+{
+	if(ADC2->DR>3277)
+		{
+			if(OPAMP2->CSR == 0x1078404D)			//X4模式
+				OPAMP2->CSR = 0x1078004D;				//X2模式
+			else
+			{
+				if(OPAMP2->CSR == 0x1078004D)		//X2模式
+					OPAMP2->CSR = 0x1078006D;			//X1模式
+			}
+		}
+
+		if(ADC2->DR<1229)
+		{
+			if(OPAMP2->CSR == 0x1078006D)			//X1模式
+				OPAMP2->CSR = 0x1078004D;				//X2模式			
+			else
+			{
+				if(OPAMP2->CSR == 0x1078004D)		//X2模式
+					OPAMP2->CSR = 0x1078404D;			//X4模式
+			}
+		}
+}
+void ADC2_Channel3(void)
+{
+	int mk_15bit = 0;						//15位过采样值生成计数
+	int	mk_20bit;								//20位过采样值生成计数
+	uint32_t sum_15bit = 0;			//15位过采样值生成求和
+	uint32_t sum_20bit = 0;			//20位过采样值生成求和
+	uint32_t	DMA1_ISR_Value = 0;//DMA1->ISR 寄存器状态	
+	
+	ADC2->CR |= 1<<2;						//ADC2 规则通道转换使能
+	DMA1_ISR_Value = DMA1->ISR;	//复制 DMA1->ISR 寄存器值
+	
+	if((DMA1_ISR_Value&1<<5) == 1)//判断DMA是否传输完成
+		ADC2->CR |= 1<<4;					//ADC2 规则通道转化停止
+	
+	if(Calibrate_Status == 1)		//校准完成后计算15bit数据
 		{
 			for(mk_15bit=0;mk_15bit<64;mk_15bit++)
 				sum_15bit += ADC2ConvertedVault[mk_15bit]*Actual_Gain+Actual_Offset;
 			OverSampling_15bit = sum_15bit >> 6;
 			sum_15bit = 0;
 		}
-		
-		if(ADC2->DR>3277)
+	
+	if(TimeBase == 5 && Calibrate_Status == 1)		//校准完成后每5s计算20bit数据
 		{
-			GPIOB->BSRR |= 1<<9;							//高电平指示灯使能
-			GPIOB->BRR |= 1<<6;
-			GPIOB->BRR |= 1<<8;
-//			if(OPAMP2->CSR == 0x1078404D)			//X4模式
-//				OPAMP2->CSR = 0x1078004D;				//X2模式
-//			else
-//			{
-//				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-//					OPAMP2->CSR = 0x1078006D;			//X1模式
-//			}
-		}
+			for(mk_20bit=0;mk_20bit<1024;mk_20bit++)
+				sum_20bit += OverSampling_15bit;
+			OverSampling_20bit = sum_20bit >> 10;
+			TimeBase = 0;						//时基清零
+	 	}
+}
+void DAC1_Channel1(void)
+{
+	if(TimeBase == 1 && Calibrate_Status != 1)
+			DAC1->DHR12R1 = LOW_IDEAL_COUNT;	//开机1S后 DAC输出0%参考电压
 		
-		if(ADC2->DR>=1229 && ADC2->DR<=3277)
-		{
-			GPIOB->BSRR |= 1<<6;
-			GPIOB->BRR |= 1<<8;
-			GPIOB->BRR |= 1<<9;
-		}
-
-		if(ADC2->DR<1229)
-		{
-			GPIOB->BSRR |= 1<<8;							//低电平指示灯使能
-			GPIOB->BRR |= 1<<6;
-			GPIOB->BRR |= 1<<9;
-//			if(OPAMP2->CSR == 0x1078006D)			//X1模式
-//				OPAMP2->CSR = 0x1078004D;				//X2模式			
-//			else
-//			{
-//				if(OPAMP2->CSR == 0x1078004D)		//X2模式
-//					OPAMP2->CSR = 0x1078404D;			//X4模式
-//			}
-		}
-		
-		if(Calibrate_Status == 1)
-			DAC1->DHR12R1 = OverSampling_15bit;					//校准完成后跟随ADC2
+	if(TimeBase == 3 && Calibrate_Status != 1)
+		DAC1->DHR12R1 = HIGH_IDEAL_COUNT;		//开机3S后 DAC输出90%参考电压
+}
+void TIM2_IRQHandler(void)
+{
+	if(TIM2->SR&1)							//判断是否溢出
+	{
+		DAC1_Channel1();
+		TimeBase++;
+	}		
+	TIM2->SR &= 0<<0;						//清除中断标志
+}
+void TIM3_IRQHandler(void)
+{
+	if(TIM3->SR&1)							//判断是否溢出
+	{
+		ADC2_Channel3();
+		Calibrate();
+		LED();
+//		PGA();
 	}
-	TIM3->SR &= 0<<0;											//清除中断标志
+	TIM3->SR &= 0<<0;						//清除中断标志
 }
 /* USER CODE END 4 */
 
