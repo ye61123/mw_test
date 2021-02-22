@@ -379,7 +379,7 @@ void TIM3_IRQHandler(void)
 		}
 		
 		if(Calibrate_Status == 1)
-			DAC1->DHR12R1 = ADC2->DR;					//校准完成后跟随ADC2
+			DAC1->DHR12R1 = OverSampling_15bit;					//校准完成后跟随ADC2
 	}
 	TIM3->SR &= 0<<0;											//清除中断标志
 }
