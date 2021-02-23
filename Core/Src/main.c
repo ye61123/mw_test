@@ -290,7 +290,7 @@ void Calibrate(void)
 		
 		if(TimeBase == 5)
 		{
-			if(Calibrate_Status != 1 && (Avg_H_Count-Avg_L_Count)>2000)												//消除干扰信号
+			if(Calibrate_Status != 1 && (Avg_H_Count-Avg_L_Count)>1000)												//消除干扰信号
 			{
 				Actual_Gain = (HIGH_IDEAL_COUNT - LOW_IDEAL_COUNT)/(Avg_H_Count-Avg_L_Count);		//计算实际增益系数
 				if(LOW_IDEAL_COUNT<Avg_L_Count)
@@ -376,7 +376,6 @@ void DAC1_Channel1(void)
 {
 	if(TimeBase == 1 && Calibrate_Status != 1)
 			DAC1->DHR12R1 = LOW_IDEAL_COUNT;	//开机1S后 DAC输出0%参考电压
-		
 	if(TimeBase == 3 && Calibrate_Status != 1)
 		DAC1->DHR12R1 = HIGH_IDEAL_COUNT;		//开机3S后 DAC输出90%参考电压
 }
