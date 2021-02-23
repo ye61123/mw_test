@@ -307,7 +307,7 @@ void Calibrate(void)
 				DAC1->DHR12R1 = OverSampling_15bit;																							//校准完成后跟随ADC2
 			}
 			TimeBase = 0;
-			GPIOB->BSRR |= 1<<7;								//校准指示灯使能
+			GPIOB->BSRR |= 1<<7;		//校准指示灯使能
 		}
 }
 void LED(void)
