@@ -59,6 +59,7 @@ static void DMA_Init(void);
 static void ADC_Init(void);
 static void PGA_Init(void);
 static void DAC_Init(void);
+static void UART_Init(void);
 static void Calibrate_Init(void);
 void Calibrate(void);
 void TIM2_IRQHandler(void);
@@ -116,6 +117,7 @@ int main(void)
 	ADC_Init();
 	PGA_Init();
 	I2C_Init();
+	UART_Init();
 	Calibrate_Init();
   /* USER CODE END 2 */
 
@@ -263,6 +265,10 @@ static void Calibrate_Init(void)
 	Actual_Gain = 0;											
 	Actual_Offset = 0;
 	GPIOB->BSRR |= 1<<7;				//校准指示灯使能
+}
+static void UART_Init(void)
+{
+	USART1->CR1 |= 1<<0;	//USART使能
 }
 void Calibrate(void)
 {
