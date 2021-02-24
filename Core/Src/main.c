@@ -399,8 +399,8 @@ void TIM3_IRQHandler(void)
 	if(TIM3->SR&1)							//判断是否溢出
 	{
 		ADC2_Channel3();
-		LED();
-		Calibrate();
+		LED();										//LED 控制函数
+		Calibrate();							//校准功能函数
 //		PGA();
 	}
 	TIM3->SR &= 0<<0;						//清除中断标志
